@@ -49,21 +49,53 @@ cmake_ninja_workdir = /Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-bu
 
 build cmake_object_order_depends_target_aiRunner: phony || .
 
-build CMakeFiles/aiRunner.dir/aiRunner.cpp.o: CXX_COMPILER__aiRunner_unscanned_Debug /Users/kwon/Workspace/C/ai-run-library/CppLibrary/aiRunner.cpp || cmake_object_order_depends_target_aiRunner
+build CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx.pch: CXX_COMPILER__aiRunner_unscanned_Debug /Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug/CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx.cxx | CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx || cmake_object_order_depends_target_aiRunner
   DEFINES = -DaiRunner_EXPORTS
-  DEP_FILE = CMakeFiles/aiRunner.dir/aiRunner.cpp.o.d
-  FLAGS = -g -std=gnu++11 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fPIC -fcolor-diagnostics
-  INCLUDES = -I/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/mac/include
+  DEP_FILE = CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx.pch.d
+  FLAGS = -g -std=gnu++11 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fPIC -fcolor-diagnostics -Winvalid-pch -Xclang -emit-pch -Xclang -include -Xclang /Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug/CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx -x c++-header
+  INCLUDES = -I/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/OnnxRuntime/mac/include
   OBJECT_DIR = CMakeFiles/aiRunner.dir
   OBJECT_FILE_DIR = CMakeFiles/aiRunner.dir
 
-build CMakeFiles/aiRunner.dir/Base/Workflow.cpp.o: CXX_COMPILER__aiRunner_unscanned_Debug /Users/kwon/Workspace/C/ai-run-library/CppLibrary/Base/Workflow.cpp || cmake_object_order_depends_target_aiRunner
+build CMakeFiles/aiRunner.dir/aiRunner.cpp.o: CXX_COMPILER__aiRunner_unscanned_Debug /Users/kwon/Workspace/C/ai-run-library/CppLibrary/aiRunner.cpp | CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx.pch || cmake_object_order_depends_target_aiRunner
   DEFINES = -DaiRunner_EXPORTS
-  DEP_FILE = CMakeFiles/aiRunner.dir/Base/Workflow.cpp.o.d
-  FLAGS = -g -std=gnu++11 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fPIC -fcolor-diagnostics
-  INCLUDES = -I/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/mac/include
+  DEP_FILE = CMakeFiles/aiRunner.dir/aiRunner.cpp.o.d
+  FLAGS = -g -std=gnu++11 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fPIC -fcolor-diagnostics -Winvalid-pch -Xarch_arm64 -include/Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug/CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx
+  INCLUDES = -I/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/OnnxRuntime/mac/include
   OBJECT_DIR = CMakeFiles/aiRunner.dir
-  OBJECT_FILE_DIR = CMakeFiles/aiRunner.dir/Base
+  OBJECT_FILE_DIR = CMakeFiles/aiRunner.dir
+
+build CMakeFiles/aiRunner.dir/Core/Workflow.cpp.o: CXX_COMPILER__aiRunner_unscanned_Debug /Users/kwon/Workspace/C/ai-run-library/CppLibrary/Core/Workflow.cpp | CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx.pch || cmake_object_order_depends_target_aiRunner
+  DEFINES = -DaiRunner_EXPORTS
+  DEP_FILE = CMakeFiles/aiRunner.dir/Core/Workflow.cpp.o.d
+  FLAGS = -g -std=gnu++11 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fPIC -fcolor-diagnostics -Winvalid-pch -Xarch_arm64 -include/Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug/CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx
+  INCLUDES = -I/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/OnnxRuntime/mac/include
+  OBJECT_DIR = CMakeFiles/aiRunner.dir
+  OBJECT_FILE_DIR = CMakeFiles/aiRunner.dir/Core
+
+build CMakeFiles/aiRunner.dir/Core/Model.cpp.o: CXX_COMPILER__aiRunner_unscanned_Debug /Users/kwon/Workspace/C/ai-run-library/CppLibrary/Core/Model.cpp | CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx.pch || cmake_object_order_depends_target_aiRunner
+  DEFINES = -DaiRunner_EXPORTS
+  DEP_FILE = CMakeFiles/aiRunner.dir/Core/Model.cpp.o.d
+  FLAGS = -g -std=gnu++11 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fPIC -fcolor-diagnostics -Winvalid-pch -Xarch_arm64 -include/Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug/CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx
+  INCLUDES = -I/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/OnnxRuntime/mac/include
+  OBJECT_DIR = CMakeFiles/aiRunner.dir
+  OBJECT_FILE_DIR = CMakeFiles/aiRunner.dir/Core
+
+build CMakeFiles/aiRunner.dir/Utils/pch.cpp.o: CXX_COMPILER__aiRunner_unscanned_Debug /Users/kwon/Workspace/C/ai-run-library/CppLibrary/Utils/pch.cpp | CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx.pch || cmake_object_order_depends_target_aiRunner
+  DEFINES = -DaiRunner_EXPORTS
+  DEP_FILE = CMakeFiles/aiRunner.dir/Utils/pch.cpp.o.d
+  FLAGS = -g -std=gnu++11 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fPIC -fcolor-diagnostics -Winvalid-pch -Xarch_arm64 -include/Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug/CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx
+  INCLUDES = -I/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/OnnxRuntime/mac/include
+  OBJECT_DIR = CMakeFiles/aiRunner.dir
+  OBJECT_FILE_DIR = CMakeFiles/aiRunner.dir/Utils
+
+build CMakeFiles/aiRunner.dir/Core/DataLoader.cpp.o: CXX_COMPILER__aiRunner_unscanned_Debug /Users/kwon/Workspace/C/ai-run-library/CppLibrary/Core/DataLoader.cpp | CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx.pch || cmake_object_order_depends_target_aiRunner
+  DEFINES = -DaiRunner_EXPORTS
+  DEP_FILE = CMakeFiles/aiRunner.dir/Core/DataLoader.cpp.o.d
+  FLAGS = -g -std=gnu++11 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk -fPIC -fcolor-diagnostics -Winvalid-pch -Xarch_arm64 -include/Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug/CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx
+  INCLUDES = -I/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/OnnxRuntime/mac/include
+  OBJECT_DIR = CMakeFiles/aiRunner.dir
+  OBJECT_FILE_DIR = CMakeFiles/aiRunner.dir/Core
 
 
 # =============================================================================
@@ -73,14 +105,14 @@ build CMakeFiles/aiRunner.dir/Base/Workflow.cpp.o: CXX_COMPILER__aiRunner_unscan
 #############################################
 # Link the shared library aiRunner.dylib
 
-build aiRunner.dylib: CXX_SHARED_LIBRARY_LINKER__aiRunner_Debug CMakeFiles/aiRunner.dir/aiRunner.cpp.o CMakeFiles/aiRunner.dir/Base/Workflow.cpp.o
+build aiRunner.dylib: CXX_SHARED_LIBRARY_LINKER__aiRunner_Debug CMakeFiles/aiRunner.dir/aiRunner.cpp.o CMakeFiles/aiRunner.dir/Core/Workflow.cpp.o CMakeFiles/aiRunner.dir/Core/Model.cpp.o CMakeFiles/aiRunner.dir/Utils/pch.cpp.o CMakeFiles/aiRunner.dir/Core/DataLoader.cpp.o
   ARCH_FLAGS = -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk
   INSTALLNAME_DIR = @rpath/
   LANGUAGE_COMPILE_FLAGS = -g
-  LINK_LIBRARIES = -Wl,-rpath,/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/mac/lib  -l<your_library>
-  LINK_PATH = -L/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/mac/lib
+  LINK_LIBRARIES = -Wl,-rpath,/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/OnnxRuntime/mac/lib  -lonnxruntime
+  LINK_PATH = -L/Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/OnnxRuntime/mac/lib
   OBJECT_DIR = CMakeFiles/aiRunner.dir
-  POST_BUILD = cd /Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug && /opt/homebrew/Cellar/cmake/3.29.6/bin/cmake -E copy /Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug/aiRunner.dylib /Users/kwon/Workspace/C/ai-run-library/CppLibrary/../TestProject/Assets/Plugins/aiRunner.dylib && cd /Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug && /opt/homebrew/Cellar/cmake/3.29.6/bin/cmake -E copy_directory /Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/mac/include /Users/kwon/Workspace/C/ai-run-library/CppLibrary/../TestProject/Library/mac/include && cd /Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug && /opt/homebrew/Cellar/cmake/3.29.6/bin/cmake -E copy_directory /Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/mac/lib /Users/kwon/Workspace/C/ai-run-library/CppLibrary/../TestProject/Library/mac/lib
+  POST_BUILD = cd /Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug && /opt/homebrew/Cellar/cmake/3.29.6/bin/cmake -E copy /Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug/aiRunner.dylib /Users/kwon/Workspace/C/ai-run-library/CppLibrary/../TestProject/Assets/Plugins/aiRunner.dylib && cd /Users/kwon/Workspace/C/ai-run-library/CppLibrary/cmake-build-debug && /opt/homebrew/Cellar/cmake/3.29.6/bin/cmake -E copy_directory /Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/OnnxRuntime/mac/include /Users/kwon/Workspace/C/ai-run-library/CppLibrary/../TestProject/Library/OnnxRuntime/mac/include && /opt/homebrew/Cellar/cmake/3.29.6/bin/cmake -E copy_directory /Users/kwon/Workspace/C/ai-run-library/CppLibrary/../Library/OnnxRuntime/mac/lib /Users/kwon/Workspace/C/ai-run-library/CppLibrary/../TestProject/Library/OnnxRuntime/mac/lib
   PRE_LINK = :
   SONAME = aiRunner.dylib
   SONAME_FLAG = -install_name
