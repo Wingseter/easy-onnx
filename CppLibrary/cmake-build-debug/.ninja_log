@@ -1,5 +1,8 @@
 # ninja log v5
+2	136	1720674209833489771	aiRunner.dylib	df2b4ff676aa2e5e
+440	623	1720674140439469827	CMakeFiles/aiRunner.dir/aiRunner.cpp.o	b1f0eef032970be1
+441	623	1720674140439470952	CMakeFiles/aiRunner.dir/Base/Workflow.cpp.o	9e6facf44f774691
 63	108	1720587731665545342	libaiRunner.dylib	7512c85947f68229
-1	63	1720587731626839572	CMakeFiles/aiRunner.dir/aiRunner.cpp.o	ac386d4f74f4f5c8
-1	51	1720663165470632557	build.ninja	f02c5e408bad3bf9
-0	147	1720588599906787877	aiRunner.dylib	bfe1af6f800f0a07
+0	41	1720675827300611540	build.ninja	f02c5e408bad3bf9
+441	624	1720674140439469160	CMakeFiles/aiRunner.dir/Base/Model.cpp.o	5c50cb3d45c7b30e
+0	439	1720674140255714643	CMakeFiles/aiRunner.dir/cmake_pch_arm64.hxx.pch	730ec8511906c57a
