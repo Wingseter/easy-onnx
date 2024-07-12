@@ -10,10 +10,11 @@ class Model {
 public:
     void setSessionOption(bool cpu_use);
     void setModel(const char* model_path);
-
-private:
     void setModelInOutput();
     void setModelInputTypeDim();
+
+public:
+    bool run()
 
 public:
     std::string getInputName() {return input_name;}

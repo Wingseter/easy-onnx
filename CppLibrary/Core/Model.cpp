@@ -39,9 +39,6 @@ void Model::setModel(const char * model_path) {
     Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "airunner");
 
     session = make_shared<Ort::Session>(env, model_path, session_options);
-
-    setModelInOutput();
-    setModelInputTypeDim();
 }
 
 void Model::setModelInOutput() {
