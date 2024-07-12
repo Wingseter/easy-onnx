@@ -7,8 +7,15 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <thread>
+using namespace std;
+
+#ifdef PLATFORM_WINDOWS
+#pragma comment(lib, "onnxruntime.lib")
+#endif
 
 #include <onnxruntime_cxx_api.h>
+#include <coreml_provider_factory.h>
 
 #define DECLARE_SINGLE(type)		\
 private:							\

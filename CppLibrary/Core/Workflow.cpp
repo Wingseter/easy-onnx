@@ -6,3 +6,6 @@
 #include "Workflow.h"
 
 
+void Workflow::set_model(const char *modelPath) {
+    _model.
+}
