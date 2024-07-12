@@ -4,6 +4,7 @@
 
 #include "Utils/pch.h"
 #include "aiRunner.h"
+#include "Core/Workflow.h"
 #include <string.h>
 
 extern "C" const char* GetResponse(const char* input) {
