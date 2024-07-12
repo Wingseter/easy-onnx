@@ -14,6 +14,21 @@ using namespace std;
 #pragma comment(lib, "onnxruntime.lib")
 #endif
 
+enum class DataType {
+    FLOAT,
+    DOUBLE,
+    INT32,
+    INT64
+};
+
+union DataPointer {
+    float* float_ptr;
+    double* double_ptr;
+    int32_t* int32_ptr;
+    int64_t* int64_ptr;
+};
+
+
 #include <onnxruntime_cxx_api.h>
 #include <coreml_provider_factory.h>
 

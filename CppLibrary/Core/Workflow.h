@@ -10,13 +10,17 @@ class DataLoader;
 
 class Workflow {
 public:
-    void set_model(const char* modelPath);
+    void init_model(const char* modelPath);
+    void run_model(int* data, size_t num_elements, bool cpu_use);
+    void run_model(float* data, size_t num_elements, bool cpu_use);
+    void run_model(double* data, size_t num_elements, bool cpu_use);
 
 private:
-    shared_ptr<Model> _model;
-    shared_ptr<DataLoader> _dataLoader;
+    template <typename T>
+    void run_inference(T* data, size_t num_elements, bool cpu_use);
 
+    std::shared_ptr<Model> model_;
+    std::shared_ptr<DataLoader> data_loader_;
 };
-
 
 #endif //AIRUNNER_WORKFLOW_H
