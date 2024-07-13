@@ -4,3 +4,5 @@
 #pragma once
 
 extern "C" const char* GetResponse(const char* input);
+
+extern "C" const bool InitModel(const char * modelPath, bool cpu_use);
