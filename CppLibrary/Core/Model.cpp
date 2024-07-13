@@ -62,3 +62,41 @@ void Model::setModelInputTypeDim() {
     input_type = input_tensor_info.GetElementType();
 }
 
+bool Model::runInference(Ort::Value input_tensor) {
+    // Check if the session is valid
+    if (!session) {
+        std::cerr << "Session is not initialized!" << std::endl;
+        return false;
+    }
+
+    // Prepare input and output names as const char* arrays
+    const char* input_names[] = { input_name.c_str() };
+    const char* output_names[] = { output_name.c_str() };
+
+    // Run inference
+    auto output_tensors = session->Run(Ort::RunOptions{ nullptr },
+                                       input_names, &input_tensor, 1,
+                                       output_names, 1);
+
+    // Check if we have any output tensors
+    if (output_tensors.empty()) {
+        std::cerr << "Inference failed: no output tensors" << std::endl;
+        return false;
+    }
+
+    // Process output tensor (for now, just print some information)
+    Ort::Value& output_tensor = output_tensors.front();
+    float* output_data = output_tensor.GetTensorMutableData<float>();
+    size_t output_size = output_tensor.GetTensorTypeAndShapeInfo().GetElementCount();
+
+    // TODO: return float pointer to main program
+    // Example: print the first 10 values (or fewer if the output is smaller)
+    size_t num_values_to_print = std::min(output_size, static_cast<size_t>(10));
+    std::cout << "Output data: ";
+    for (size_t i = 0; i < num_values_to_print; ++i) {
+        std::cout << output_data[i] << " ";
+    }
+    std::cout << std::endl;
+
+    return true;
+}

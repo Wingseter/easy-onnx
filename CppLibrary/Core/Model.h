@@ -14,7 +14,7 @@ public:
     void setModelInputTypeDim();
 
 public:
-    bool run()
+    bool runInference(Ort::Value input_tensor);
 
 public:
     std::string getInputName() {return input_name;}

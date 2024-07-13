@@ -10,14 +10,14 @@ class DataLoader;
 
 class Workflow {
 public:
-    void init_model(const char* modelPath);
-    void run_model(int* data, size_t num_elements, bool cpu_use);
-    void run_model(float* data, size_t num_elements, bool cpu_use);
-    void run_model(double* data, size_t num_elements, bool cpu_use);
+    void init_model(const char* modelPath, bool cpu_use);
+    void run_model(int* data, size_t num_elements);
+    void run_model(float* data, size_t num_elements);
+    void run_model(double* data, size_t num_elements);
 
 private:
     template <typename T>
-    void run_inference(T* data, size_t num_elements, bool cpu_use);
+    void run_inference(T* data, size_t num_elements);
 
     std::shared_ptr<Model> model_;
     std::shared_ptr<DataLoader> data_loader_;
