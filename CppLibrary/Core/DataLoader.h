@@ -10,7 +10,7 @@ class Model;
 
 class DataLoader {
 public:
-    explicit DataLoader(std::shared_ptr<Model> model);
+    DataLoader(const std::vector<int64_t>& input_dims, ONNXTensorElementDataType input_type);
 
     template <typename T>
     Ort::Value load_data(T* data, size_t num_elements);

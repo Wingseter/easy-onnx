@@ -5,10 +5,9 @@
 #include "DataLoader.h"
 #include "Model.h"
 
-DataLoader::DataLoader(std::shared_ptr<Model> model) {
-    input_dims_ = model->getInputDims();
-    input_type_ = model->getInputType();
-}
+DataLoader::DataLoader(const std::vector<int64_t>& input_dims, ONNXTensorElementDataType input_type)
+        : input_dims_(input_dims), input_type_(input_type) {}
+
 
 template <typename T>
 Ort::Value DataLoader::load_data(T* data, size_t num_elements) {
