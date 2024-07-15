@@ -84,19 +84,18 @@ bool Model::runInference(Ort::Value input_tensor) {
         return false;
     }
 
-    // Process output tensor (for now, just print some information)
     Ort::Value& output_tensor = output_tensors.front();
-    float* output_data = output_tensor.GetTensorMutableData<float>();
+    auto output_data = output_tensor.GetTensorMutableData<float>();
+    original_shape = output_tensor.GetTensorTypeAndShapeInfo().GetShape();
     size_t output_size = output_tensor.GetTensorTypeAndShapeInfo().GetElementCount();
 
-    // TODO: return float pointer to main program
-    // Example: print the first 10 values (or fewer if the output is smaller)
-    size_t num_values_to_print = std::min(output_size, static_cast<size_t>(10));
-    std::cout << "Output data: ";
-    for (size_t i = 0; i < num_values_to_print; ++i) {
-        std::cout << output_data[i] << " ";
-    }
-    std::cout << std::endl;
+    flattened_output = std::vector<float>(output_data, output_data + output_size);
+}
 
-    return true;
+std::vector<float> Model::getFlattenedOutput() const {
+    return flattened_output;
+}
+
+std::vector<int64_t> Model::getOriginalShape() const {
+    return original_shape;
 }

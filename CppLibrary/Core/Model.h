@@ -13,6 +13,8 @@ public:
     void setModelInOutput();
     void setModelInputTypeDim();
 
+    std::vector<float> getFlattenedOutput() const;
+    std::vector<int64_t> getOriginalShape() const;
 public:
     bool runInference(Ort::Value input_tensor);
 
@@ -30,6 +32,9 @@ private:
     std::string output_name;
     std::vector<int64_t> input_dims;
     ONNXTensorElementDataType input_type;
+
+    std::vector<float> flattened_output;
+    std::vector<int64_t> original_shape;
 };
 
 
