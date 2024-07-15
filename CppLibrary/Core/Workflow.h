@@ -15,12 +15,16 @@ public:
     void run_model(float* data, size_t num_elements);
     void run_model(double* data, size_t num_elements);
 
+    std::vector<float> getFlattenedOutput() const;
+    std::vector<int64_t> getOriginalShape() const;
+
 private:
     template <typename T>
     void run_inference(T* data, size_t num_elements);
 
     std::shared_ptr<Model> model_;
     std::shared_ptr<DataLoader> data_loader_;
+
 };
 
 #endif //AIRUNNER_WORKFLOW_H

@@ -3,6 +3,11 @@
 //
 #pragma once
 
-extern "C" const char* GetResponse(const char* input);
+#include <vector>
 
-extern "C" const bool InitModel(const char * modelPath, bool cpu_use);
+extern "C" bool InitModel(const char* modelPath, bool cpu_use);
+extern "C" void RunModelInt(int* data, size_t num_elements);
+extern "C" void RunModelFloat(float* data, size_t num_elements);
+extern "C" void RunModelDouble(double* data, size_t num_elements);
+extern "C" const float* GetFlattenedOutput(size_t* size);
+extern "C" const int64_t* GetOriginalShape(size_t* size);

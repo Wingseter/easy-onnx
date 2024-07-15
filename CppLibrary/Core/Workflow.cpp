@@ -14,7 +14,9 @@ void Workflow::init_model(const char* modelPath, bool cpu_use) {
     model_->setModelInOutput();
     model_->setModelInputTypeDim();
 
-    data_loader_ = std::make_shared<DataLoader>(model_);
+    std::vector<int64_t> input_dims = model_->getInputDims();
+    ONNXTensorElementDataType input_type = model_->getInputType();
+    data_loader_ = std::make_shared<DataLoader>(input_dims, input_type);
 }
 
 void Workflow::run_model(int* data, size_t num_elements) {
@@ -34,10 +36,17 @@ void Workflow::run_inference(T* data, size_t num_elements) {
     Ort::Value input_tensor = data_loader_->load_data(data, num_elements);
 
     auto output_tensors = model_->runInference(std::move(input_tensor));
-
 }
 
-// 템플릿 명시적 인스턴스화
+std::vector<float> Workflow::getFlattenedOutput() const {
+    return model_->getFlattenedOutput();
+}
+
+std::vector<int64_t> Workflow::getOriginalShape() const {
+    return model_->getOriginalShape();
+}
+
+// template instanciation
 template void Workflow::run_inference<int>(int*, size_t);
 template void Workflow::run_inference<float>(float*, size_t);
 template void Workflow::run_inference<double>(double*, size_t);
