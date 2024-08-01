@@ -42,22 +42,22 @@ set_target_properties(aiRunner PROPERTIES PREFIX "")
 # Link ONNX Runtime library
 target_link_libraries(aiRunner onnxruntime)
 
-# Copy the built library to the TestProject Plugins folder
+# Copy the built library to the UnityApplication Plugins folder
 add_custom_command(TARGET aiRunner POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${CMAKE_SOURCE_DIR}/../TestProject/Assets/Plugins/$<TARGET_FILE_NAME:aiRunner>
-        COMMENT "Copying aiRunner library to TestProject Plugins folder")
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${CMAKE_SOURCE_DIR}/../UnityApplication/Assets/Plugins/$<TARGET_FILE_NAME:aiRunner>
+        COMMENT "Copying aiRunner library to UnityApplication Plugins folder")
 
-# 플랫폼별로 include 및 lib 디렉토리를 TestProject에 복사
+# 플랫폼별로 include 및 lib 디렉토리를 UnityApplication에 복사
 if(WIN32)
     add_custom_command(TARGET aiRunner POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/windows/include ${CMAKE_SOURCE_DIR}/../TestProject/Library/OnnxRuntime/windows/include
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/windows/lib ${CMAKE_SOURCE_DIR}/../TestProject/Library/OnnxRuntime/windows/lib
-            COMMENT "Copying Windows include and lib directories to TestProject")
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/windows/include ${CMAKE_SOURCE_DIR}/../UnityApplication/Library/OnnxRuntime/windows/include
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/windows/lib ${CMAKE_SOURCE_DIR}/../UnityApplication/Library/OnnxRuntime/windows/lib
+            COMMENT "Copying Windows include and lib directories to UnityApplication")
 elseif(APPLE)
     add_custom_command(TARGET aiRunner POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/mac/include ${CMAKE_SOURCE_DIR}/../TestProject/Library/OnnxRuntime/mac/include
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/mac/lib ${CMAKE_SOURCE_DIR}/../TestProject/Library/OnnxRuntime/mac/lib
-            COMMENT "Copying macOS include and lib directories to TestProject")
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/mac/include ${CMAKE_SOURCE_DIR}/../UnityApplication/Library/OnnxRuntime/mac/include
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/mac/lib ${CMAKE_SOURCE_DIR}/../UnityApplication/Library/OnnxRuntime/mac/lib
+            COMMENT "Copying macOS include and lib directories to UnityApplication")
 else()
     # 다른 플랫폼을 위한 설정 (필요시 추가)
 endif()

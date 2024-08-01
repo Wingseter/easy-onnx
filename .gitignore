@@ -22,18 +22,18 @@ Makefile
 *.cmake
 
 # Unity 관련 파일 무시
-TestProject/Library/
-TestProject/Temp/
-TestProject/Obj/
-TestProject/Build/
-TestProject/Builds/
-TestProject/Logs/
-TestProject/UserSettings/
+UnityApplication/Library/
+UnityApplication/Temp/
+UnityApplication/Obj/
+UnityApplication/Build/
+UnityApplication/Builds/
+UnityApplication/Logs/
+UnityApplication/UserSettings/
 
 # Unity Auto-generated files
-TestProject/Assets/Plugins/aiRunner.dll
-TestProject/Assets/Plugins/aiRunner.dylib
-TestProject/Assets/Plugins/aiRunner.so
+UnityApplication/Assets/Plugins/aiRunner.dll
+UnityApplication/Assets/Plugins/aiRunner.dylib
+UnityApplication/Assets/Plugins/aiRunner.so
 
 # 시스템 파일 무시
 .DS_Store
@@ -46,3 +46,9 @@ Thumbs.db
 *.swp
 *.swo
 *.swn
+
+CppLibrary/cmake-build-debug/
+CppLibrary/.idea/
+CppApplication/cmake-build-debug/
+CppApplication/.idea/
+UnityApplication/Assets/Scripts/.idea
