@@ -15,49 +15,56 @@ else()
 endif()
 
 # Add library
-add_library(aiRunner SHARED aiRunner.cpp
-        Core/Workflow.cpp
-        Core/Workflow.h
-        Core/Model.cpp
-        Core/Model.h
+add_library(aiRunner SHARED src/aiRunner.cpp
+        src/Workflow.cpp
+        include/Workflow.h
+        src/Model.cpp
+        include/Model.h
         Utils/pch.cpp
-        Core/DataLoader.cpp
-        Core/DataLoader.h)
+        src/DataLoader.cpp
+        include/DataLoader.h)
 
 # 미리 컴파일된 헤더 설정
 target_precompile_headers(aiRunner PRIVATE Utils/pch.h)
 
 # Set properties based on the platform
 if(WIN32)
-    set_target_properties(aiRunner PROPERTIES SUFFIX ".dll")
+    set_target_properties(aiRunner PROPERTIES SUFFIX ".dll" PREFIX "lib")
 elseif(APPLE)
-    set_target_properties(aiRunner PROPERTIES SUFFIX ".dylib")
+    set_target_properties(aiRunner PROPERTIES SUFFIX ".dylib" PREFIX "lib")
 else()
-    set_target_properties(aiRunner PROPERTIES SUFFIX ".so")
+    set_target_properties(aiRunner PROPERTIES SUFFIX ".so" PREFIX "lib")
 endif()
-
-# SetExport Name aiRunner
-set_target_properties(aiRunner PROPERTIES PREFIX "")
 
 # Link ONNX Runtime library
 target_link_libraries(aiRunner onnxruntime)
 
-# Copy the built library to the UnityApplication Plugins folder
-add_custom_command(TARGET aiRunner POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${CMAKE_SOURCE_DIR}/../UnityApplication/Assets/Plugins/$<TARGET_FILE_NAME:aiRunner>
-        COMMENT "Copying aiRunner library to UnityApplication Plugins folder")
-
-# 플랫폼별로 include 및 lib 디렉토리를 UnityApplication에 복사
+# Copy the built library to the Final Output based on the platform
 if(WIN32)
     add_custom_command(TARGET aiRunner POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/windows/include ${CMAKE_SOURCE_DIR}/../UnityApplication/Library/OnnxRuntime/windows/include
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/windows/lib ${CMAKE_SOURCE_DIR}/../UnityApplication/Library/OnnxRuntime/windows/lib
-            COMMENT "Copying Windows include and lib directories to UnityApplication")
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${CMAKE_SOURCE_DIR}/../Library/aiRunner/windows/lib/$<TARGET_FILE_NAME:aiRunner>
+            COMMENT "Copying aiRunner library to output folder (Windows)")
 elseif(APPLE)
     add_custom_command(TARGET aiRunner POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/mac/include ${CMAKE_SOURCE_DIR}/../UnityApplication/Library/OnnxRuntime/mac/include
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/mac/lib ${CMAKE_SOURCE_DIR}/../UnityApplication/Library/OnnxRuntime/mac/lib
-            COMMENT "Copying macOS include and lib directories to UnityApplication")
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${CMAKE_SOURCE_DIR}/../Library/aiRunner/mac/lib/$<TARGET_FILE_NAME:aiRunner>
+            COMMENT "Copying aiRunner library to output folder (macOS)")
 else()
-    # 다른 플랫폼을 위한 설정 (필요시 추가)
+    add_custom_command(TARGET aiRunner POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${CMAKE_SOURCE_DIR}/../Library/aiRunner/other/lib/$<TARGET_FILE_NAME:aiRunner>
+            COMMENT "Copying aiRunner library to output folder (Other)")
+endif()
+
+# Copy the include directory to the Final Output
+if(WIN32)
+    add_custom_command(TARGET aiRunner POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/../Library/aiRunner/windows/include
+            COMMENT "Copying aiRunner include files to output folder")
+elseif(APPLE)
+    add_custom_command(TARGET aiRunner POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/../Library/aiRunner/mac/include
+            COMMENT "Copying aiRunner include files to output folder")
+else()
+    add_custom_command(TARGET aiRunner POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/../Library/aiRunner/other/include
+            COMMENT "Copying aiRunner include files to output folder")
 endif()

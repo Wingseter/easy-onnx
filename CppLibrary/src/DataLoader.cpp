@@ -2,8 +2,8 @@
 // Created by 권용훈 on 7/11/24.
 //
 #include "../Utils/pch.h"
-#include "DataLoader.h"
-#include "Model.h"
+#include "../include/DataLoader.h"
+#include "../include/Model.h"
 
 DataLoader::DataLoader(const std::vector<int64_t>& input_dims, ONNXTensorElementDataType input_type)
         : input_dims_(input_dims), input_type_(input_type) {}

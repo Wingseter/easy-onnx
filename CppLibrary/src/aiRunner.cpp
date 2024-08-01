@@ -2,9 +2,9 @@
 // Created by 권용훈 on 7/10/24.
 //
 
-#include "Utils/pch.h"
-#include "aiRunner.h"
-#include "Core/Workflow.h"
+#include "../Utils/pch.h"
+#include "../include/aiRunner.h"
+#include "../include/Workflow.h"
 #include <string.h>
 
 static std::shared_ptr<Workflow> workflow = nullptr;

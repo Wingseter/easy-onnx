@@ -2,7 +2,7 @@
 // Created by 권용훈 on 7/11/24.
 //
 
-#include "Model.h"
+#include "../include/Model.h"
 #include "../Utils/pch.h"
 
 
@@ -90,6 +90,8 @@ bool Model::runInference(Ort::Value input_tensor) {
     size_t output_size = output_tensor.GetTensorTypeAndShapeInfo().GetElementCount();
 
     flattened_output = std::vector<float>(output_data, output_data + output_size);
+
+    return true;
 }
 
 std::vector<float> Model::getFlattenedOutput() const {

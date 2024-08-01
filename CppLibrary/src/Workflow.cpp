@@ -3,9 +3,9 @@
 //
 
 #include "../Utils/pch.h"
-#include "Workflow.h"
-#include "Model.h"
-#include "DataLoader.h"
+#include "../include/Workflow.h"
+#include "../include/Model.h"
+#include "../include/DataLoader.h"
 
 void Workflow::init_model(const char* modelPath, bool cpu_use) {
     model_ = std::make_shared<Model>();
