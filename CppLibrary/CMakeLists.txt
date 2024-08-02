@@ -22,7 +22,9 @@ add_library(aiRunner SHARED src/aiRunner.cpp
         include/Model.h
         Utils/pch.cpp
         src/DataLoader.cpp
-        include/DataLoader.h)
+        include/DataLoader.h
+        src/Utils.cpp
+        include/Utils.h)
 
 # 미리 컴파일된 헤더 설정
 target_precompile_headers(aiRunner PRIVATE Utils/pch.h)
