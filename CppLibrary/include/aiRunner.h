@@ -5,6 +5,7 @@
 
 #include <vector>
 
+extern "C" bool allCheck();
 extern "C" bool InitModel(const char* modelPath, bool cpu_use);
 extern "C" void RunModelInt(int* data, int num_elements);
 extern "C" void RunModelFloat(float* data, int  num_elements);

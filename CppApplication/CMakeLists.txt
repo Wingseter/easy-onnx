@@ -26,3 +26,4 @@ add_executable(CppApplication main.cpp)
 
 # Link the aiRunner library
 target_link_libraries(CppApplication aiRunner)
+target_link_libraries(CppApplication onnxruntime)

@@ -11,8 +11,8 @@ void Model::setSessionOption(bool cpu_use) {
     int n = static_cast<int>(std::thread::hardware_concurrency());
 
     // Session Option setting
-    session_options.SetIntraOpNumThreads(n / 2);
-    session_options.SetInterOpNumThreads(n / 2);
+//    session_options.SetIntraOpNumThreads(n / 2);
+//    session_options.SetInterOpNumThreads(n / 2);
     session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
 
     // basically use CPU
@@ -98,23 +98,9 @@ bool Model::runInference(Ort::Value input_tensor) {
 
     // Run inference
     std::cout << "Running inference..." << std::endl;
-    Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
-    std::vector<Ort::Value> output_tensors = (memory_info, );
-    try {
-        output_tensors = session->Run(Ort::RunOptions{nullptr},
-                                      input_names, &input_tensor, 1,
-                                      output_names, 1);
-    } catch (const Ort::Exception& e) {
-        std::cerr << "Error during inference: " << e.what() << std::endl;
-        return false;
-    } catch (const std::exception& e) {
-        std::cerr << "Standard exception during inference: " << e.what() << std::endl;
-        return false;
-    } catch (...) {
-        std::cerr << "Unknown error during inference." << std::endl;
-        return false;
-    }
-
+    auto output_tensors = session->Run(Ort::RunOptions{nullptr},
+                                  input_names, &input_tensor, 1,
+                                  output_names, 1);
 
     // Check if we have any output tensors
     if (output_tensors.empty()) {

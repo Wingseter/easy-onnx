@@ -17,13 +17,15 @@ public:
 
     std::vector<float> getFlattenedOutput() const;
     std::vector<int64_t> getOriginalShape() const;
+    void run_test();
 
 private:
     template <typename T>
-    void run_inference(T* data, size_t num_elements);
+    void run_inference(T* data, int num_elements);
 
-    std::shared_ptr<Model> model_;
-    std::shared_ptr<DataLoader> data_loader_;
+
+    Model* model_;
+    DataLoader* data_loader_;
 
 };
 

@@ -11,6 +11,11 @@ static std::shared_ptr<Workflow> workflow = nullptr;
 static std::vector<float> flattened_output;
 static std::vector<int64_t> original_shape;
 
+extern "C" bool allCheck() {
+    workflow->run_test();
+    return true;
+}
+
 extern "C" bool InitModel(const char* modelPath, bool cpu_use) {
     workflow = std::make_shared<Workflow>();
     workflow->init_model(modelPath, cpu_use);
