@@ -41,16 +41,16 @@ extern "C" void RunModelDouble(double* data, size_t num_elements) {
     }
 }
 
-extern "C" const float* GetFlattenedOutput(size_t* size) {
+extern "C" const float* GetFlattenedOutput(int* size) {
     if (size) {
-        *size = flattened_output.size();
+        *size = static_cast<int>(flattened_output.size());
     }
     return flattened_output.data();
 }
 
-extern "C" const int64_t* GetOriginalShape(size_t* size) {
+extern "C" const int64_t* GetOriginalShape(int* size) {
     if (size) {
-        *size = original_shape.size();
+        *size = static_cast<int>(flattened_output.size());
     }
     return original_shape.data();
 }

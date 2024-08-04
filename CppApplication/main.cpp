@@ -31,7 +31,14 @@ int main() {
         data[i] = std::rand() % 100;  // Random values between 0 and 99
     }
 
-    RunModelInt(data, total_elements);
+    RunModelInt(data.data(), total_elements);
+
+    // Get Final Result
+    int size;
+    const float* output = GetFlattenedOutput(&size);
+
+    std::cout << "final output size is " << size << std::endl;
+    std::cout << "first element is " << output[0] << std::endl;
 
     return 0;
 }
