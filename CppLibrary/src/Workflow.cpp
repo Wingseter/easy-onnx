@@ -23,7 +23,7 @@ void Workflow::init_model(const char* modelPath, bool cpu_use) {
     model_->setModelInOutput();
     std::cout << "Model input and output set." << std::endl;
 
-    model_->setModelInputTypeDim();
+    model_->setModelInOutputTypeDim();
     std::cout << "Model input type and dimensions set." << std::endl;
 
     std::vector<int64_t> input_dims = model_->getInputDims();
@@ -49,15 +49,15 @@ void Workflow::init_model(const char* modelPath, bool cpu_use) {
     std::cout << "Model initialization complete." << std::endl;
 }
 
-void Workflow::run_model(int* data, size_t num_elements) {
+void Workflow::run_model(int* data, int num_elements) {
     run_inference(data, num_elements);
 }
 
-void Workflow::run_model(float* data, size_t num_elements) {
+void Workflow::run_model(float* data, int num_elements) {
     run_inference(data, num_elements);
 }
 
-void Workflow::run_model(double* data, size_t num_elements) {
+void Workflow::run_model(double* data, int num_elements) {
     run_inference(data, num_elements);
 }
 

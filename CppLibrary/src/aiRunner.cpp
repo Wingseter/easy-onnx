@@ -17,7 +17,7 @@ extern "C" bool InitModel(const char* modelPath, bool cpu_use) {
     return true;
 }
 
-extern "C" void RunModelInt(int* data, size_t num_elements) {
+extern "C" void RunModelInt(int* data, int num_elements) {
     if (workflow) {
         workflow->run_model(data, num_elements);
         flattened_output = workflow->getFlattenedOutput();
@@ -25,7 +25,7 @@ extern "C" void RunModelInt(int* data, size_t num_elements) {
     }
 }
 
-extern "C" void RunModelFloat(float* data, size_t num_elements) {
+extern "C" void RunModelFloat(float* data, int num_elements) {
     if (workflow) {
         workflow->run_model(data, num_elements);
         flattened_output = workflow->getFlattenedOutput();
@@ -33,7 +33,7 @@ extern "C" void RunModelFloat(float* data, size_t num_elements) {
     }
 }
 
-extern "C" void RunModelDouble(double* data, size_t num_elements) {
+extern "C" void RunModelDouble(double* data, int num_elements) {
     if (workflow) {
         workflow->run_model(data, num_elements);
         flattened_output = workflow->getFlattenedOutput();

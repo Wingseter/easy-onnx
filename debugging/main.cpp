@@ -62,11 +62,6 @@ int main() {
     size_t output_size = output_tensor.GetTensorTypeAndShapeInfo().GetElementCount();
 
     std::cout << "Output tensor size: " << output_size << std::endl;
-    std::cout << "Output tensor values: ";
-    for (size_t i = 0; i < output_size; ++i) {
-        std::cout << output_data[i] << " ";
-    }
-    std::cout << std::endl;
 
     return 0;
 }

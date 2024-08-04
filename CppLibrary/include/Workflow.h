@@ -11,9 +11,9 @@ class DataLoader;
 class Workflow {
 public:
     void init_model(const char* modelPath, bool cpu_use);
-    void run_model(int* data, size_t num_elements);
-    void run_model(float* data, size_t num_elements);
-    void run_model(double* data, size_t num_elements);
+    void run_model(int* data, int num_elements);
+    void run_model(float* data, int num_elements);
+    void run_model(double* data, int num_elements);
 
     std::vector<float> getFlattenedOutput() const;
     std::vector<int64_t> getOriginalShape() const;
