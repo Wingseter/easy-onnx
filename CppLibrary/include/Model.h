@@ -11,7 +11,7 @@ public:
     void setSessionOption(bool cpu_use);
     void setModel(const char* model_path);
     void setModelInOutput();
-    void setModelInputTypeDim();
+    void setModelInOutputTypeDim();
 
     std::vector<float> getFlattenedOutput() const;
     std::vector<int64_t> getOriginalShape() const;
@@ -29,9 +29,12 @@ private:
     shared_ptr<Ort::Session> session = nullptr;
 
     std::string input_name;
-    std::string output_name;
     std::vector<int64_t> input_dims;
     ONNXTensorElementDataType input_type;
+
+    std::string output_name;
+    std::vector<int64_t> output_dims;
+    ONNXTensorElementDataType output_type;
 
     std::vector<float> flattened_output;
     std::vector<int64_t> original_shape;

@@ -13,7 +13,8 @@ public:
     DataLoader(const std::vector<int64_t>& input_dims, ONNXTensorElementDataType input_type);
 
     template <typename T>
-    Ort::Value load_data(T* data, size_t num_elements);
+    Ort::Value load_data(T* data, int num_elements);
+    Ort::Value float_load_data(float * data, int num_elements);
 
 private:
     std::vector<int64_t> input_dims_;
