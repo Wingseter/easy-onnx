@@ -61,26 +61,9 @@ void Workflow::run_model(double* data, int num_elements) {
     run_inference(data, num_elements);
 }
 
-void Workflow::run_test(const char* modelPath, bool cpu_use) {
+void Workflow::run_test(const char* modelPath, bool cpu_use, float* data, int num_elements) {
     std::cout << "Hello This is ai Running Tester" << std::endl;
     std::vector<int64_t> dimensions = {1, 4, 128, 128, 80};
-    int total_elements = 1;
-
-    // Calculate the total number of elements
-    for (size_t i = 0; i < dimensions.size(); ++i) {
-        total_elements *= dimensions[i];
-    }
-
-    // Create a vector to hold the flattened data
-    std::vector<float> data(total_elements);
-
-    // Seed the random number generator
-    std::srand(static_cast<unsigned int>(std::time(0)));
-
-    // Fill the data vector with random values
-    for (int i = 0; i < total_elements; ++i) {
-        data[i] = static_cast<float>(std::rand() % 100);  // Random values between 0 and 99
-    }
 
     // Initialize ONNX Runtime
     Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "ai_running_tester");
@@ -102,7 +85,7 @@ void Workflow::run_test(const char* modelPath, bool cpu_use) {
 
     // Create input tensor
     Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-    Ort::Value input_tensor = Ort::Value::CreateTensor<float>(memory_info, data.data(), data.size(), dimensions.data(), dimensions.size());
+    Ort::Value input_tensor = Ort::Value::CreateTensor<float>(memory_info, data, num_elements, dimensions.data(), dimensions.size());
 
     // Run inference
     std::vector<const char*> input_names = { input_name.get() };

@@ -11,8 +11,8 @@ static std::shared_ptr<Workflow> workflow = nullptr;
 static std::vector<float> flattened_output;
 static std::vector<int64_t> original_shape;
 
-extern "C" bool allCheck(const char* modelPath, bool cpu_use) {
-    workflow->run_test(modelPath, cpu_use);
+extern "C" bool allCheck(const char* modelPath, bool cpu_use, float* data, int num_elements) {
+    workflow->run_test(modelPath, cpu_use, data, num_elements);
     return true;
 }
 
