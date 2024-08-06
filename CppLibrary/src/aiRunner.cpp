@@ -12,7 +12,7 @@ static std::vector<float> flattened_output;
 static std::vector<int64_t> original_shape;
 
 extern "C" bool allCheck(const char* modelPath, bool cpu_use) {
-    workflow->run_test(const char* modelPath, bool cpu_use);
+    workflow->run_test(modelPath, cpu_use);
     return true;
 }
 
