@@ -2,10 +2,10 @@
 #include "aiRunner.h"
 
 int main() {
-    allCheck();
-//    std::cout << "Hello This is ai Running Tester" << std::endl;
-//    bool cpu_use = true;
-//    const char* modelPath = "/Users/kwon/Workspace/C/ai-run-library/SampleModel/best_metric_model_0.7747.onnx";
+    std::cout << "Hello This is ai Running Tester" << std::endl;
+    bool cpu_use = true;
+    const char* modelPath = "/Users/kwon/Workspace/C/ai-run-library/SampleModel/best_metric_model_0.7747.onnx";
+    allCheck(modelPath, cpu_use);
 //
 //    // model initialize
 //    if (!InitModel(modelPath, cpu_use)) {

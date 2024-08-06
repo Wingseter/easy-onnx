@@ -61,11 +61,8 @@ void Workflow::run_model(double* data, int num_elements) {
     run_inference(data, num_elements);
 }
 
-void Workflow::run_test() {
+void Workflow::run_test(const char* modelPath, bool cpu_use) {
     std::cout << "Hello This is ai Running Tester" << std::endl;
-    bool cpu_use = true;
-    const char* modelPath = "/Users/kwon/Workspace/C/ai-run-library/SampleModel/best_metric_model_0.7747.onnx";
-
     std::vector<int64_t> dimensions = {1, 4, 128, 128, 80};
     int total_elements = 1;
 

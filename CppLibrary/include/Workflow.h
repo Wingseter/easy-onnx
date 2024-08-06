@@ -17,7 +17,7 @@ public:
 
     std::vector<float> getFlattenedOutput() const;
     std::vector<int64_t> getOriginalShape() const;
-    void run_test();
+    void run_test(const char* modelPath, bool cpu_use);
 
 private:
     template <typename T>
