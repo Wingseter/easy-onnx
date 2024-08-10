@@ -12,8 +12,6 @@ void Workflow::init_model(const char* modelPath, bool cpu_use) {
     std::cout << "Initializing model..." << std::endl;
 
     model_ = new Model();
-    std::cout << "Model object created." << std::endl;
-
     model_->setSessionOption(cpu_use);
     std::cout << "Session options set. CPU use: " << (cpu_use ? "enabled" : "disabled") << std::endl;
 
@@ -21,10 +19,7 @@ void Workflow::init_model(const char* modelPath, bool cpu_use) {
     std::cout << "Model loaded from path: " << modelPath << std::endl;
 
     model_->setModelInOutput();
-    std::cout << "Model input and output set." << std::endl;
-
     model_->setModelInOutputTypeDim();
-    std::cout << "Model input type and dimensions set." << std::endl;
 
     std::vector<int64_t> input_dims = model_->getInputDims();
     ONNXTensorElementDataType input_type = model_->getInputType();
@@ -50,7 +45,7 @@ void Workflow::init_model(const char* modelPath, bool cpu_use) {
 }
 
 void Workflow::run_model(int* data, int num_elements) {
-    run_inference(data, num_elements);
+
 }
 
 void Workflow::run_model(float* data, int num_elements) {
@@ -58,7 +53,7 @@ void Workflow::run_model(float* data, int num_elements) {
 }
 
 void Workflow::run_model(double* data, int num_elements) {
-    run_inference(data, num_elements);
+
 }
 
 void Workflow::run_test(const char* modelPath, bool cpu_use, float* data, int num_elements) {
@@ -102,8 +97,7 @@ void Workflow::run_test(const char* modelPath, bool cpu_use, float* data, int nu
 
 }
 
-template <typename T>
-void Workflow::run_inference(T* data, int num_elements) {
+void Workflow::run_inference(float* data, int num_elements) {
     Ort::Value input_tensor = data_loader_->load_data(data, num_elements);
 
     auto output_tensors = model_->runInference(std::move(input_tensor));
@@ -116,8 +110,3 @@ std::vector<float> Workflow::getFlattenedOutput() const {
 std::vector<int64_t> Workflow::getOriginalShape() const {
     return model_->getOriginalShape();
 }
-
-// template instanciation
-template void Workflow::run_inference<int>(int*, int);
-template void Workflow::run_inference<float>(float*, int);
-template void Workflow::run_inference<double>(double*, int);

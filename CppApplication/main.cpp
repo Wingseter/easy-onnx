@@ -14,7 +14,7 @@ int main() {
 //
     int dimensions[] = {1, 4, 128, 128, 80};
     int total_elements = 1;
-
+'['
     // Calculate the total number of elements
     for (int i = 0; i < 5; ++i) {
         total_elements *= dimensions[i];

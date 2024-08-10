@@ -7,12 +7,6 @@
 
 
 void Model::setSessionOption(bool cpu_use) {
-    // Get CPU Thread count
-    int n = static_cast<int>(std::thread::hardware_concurrency());
-
-    // Session Option setting
-//    session_options.SetIntraOpNumThreads(n / 2);
-//    session_options.SetInterOpNumThreads(n / 2);
     session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
 
     // basically use CPU

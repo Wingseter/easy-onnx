@@ -20,8 +20,7 @@ public:
     void run_test(const char* modelPath, bool cpu_use, float* data, int num_elements);
 
 private:
-    template <typename T>
-    void run_inference(T* data, int num_elements);
+    void run_inference(float* data, int num_elements);
 
 
     Model* model_;
