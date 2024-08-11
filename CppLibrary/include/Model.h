@@ -8,15 +8,14 @@
 
 class Model {
 public:
-    void setSessionOption(bool cpu_use);
-    void setModel(const char* model_path);
+    void setModel(const char* model_path, bool cpu_use);
     void setModelInOutput();
     void setModelInOutputTypeDim();
 
     std::vector<float> getFlattenedOutput() const;
     std::vector<int64_t> getOriginalShape() const;
 public:
-    bool runInference(Ort::Value input_tensor);
+    bool runInference(float* data, int num_elements);
 
 public:
     std::string getInputName() {return input_name;}

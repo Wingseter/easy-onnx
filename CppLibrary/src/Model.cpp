@@ -6,37 +6,11 @@
 #include "../Utils/pch.h"
 
 
-void Model::setSessionOption(bool cpu_use) {
-    // Get CPU Thread count
-    int n = static_cast<int>(std::thread::hardware_concurrency());
-
-    // Session Option setting
-//    session_options.SetIntraOpNumThreads(n / 2);
-//    session_options.SetInterOpNumThreads(n / 2);
-    session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
-
-    // basically use CPU
-    if (cpu_use) {
-        // if force use cpu
-        return;
-    }
-
-    // 플랫폼에 따른 실행 프로바이더 설정
-#ifdef _WIN32
-    // Windows: DirectML
-        Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_DML(session_options, 0));
-#elif defined(__APPLE__)
-    // macOS: CoreML
-    Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_CoreML(session_options, 0));
-#else
-    // cuda for coincident situation (Linux ?)
-    Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_CUDA(session_options, 0));
-#endif
-}
-
-void Model::setModel(const char * model_path) {
+void Model::setModel(const char * model_path, bool cpu_use) {
     // ONNX Runtime environment
     Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "airunner");
+
+    session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
 
     session = make_shared<Ort::Session>(env, model_path, session_options);
 }
@@ -70,12 +44,18 @@ void Model::setModelInOutputTypeDim() {
 
 }
 
-bool Model::runInference(Ort::Value input_tensor) {
+bool Model::runInference(float* data, int num_elements) {
     // Check if the session is valid
     if (!session) {
         std::cerr << "Session is not initialized!" << std::endl;
         return false;
     }
+    Ort::AllocatorWithDefaultOptions allocator;
+    Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
+
+    std::vector<int64_t> dimensions = {1, 4, 128, 128, 80};
+
+    auto input_tensor = Ort::Value::CreateTensor<float>(memory_info, data, num_elements,  dimensions.data(), dimensions.size());
 
     std::cout << "Session is valid. Starting inference..." << std::endl;
 
@@ -104,7 +84,7 @@ bool Model::runInference(Ort::Value input_tensor) {
 
     // Check if we have any output tensors
     if (output_tensors.empty()) {
-        std::cerr << "Inference failed: no output tensors" << std::endl;
+        std::cout << "Inference failed: no output tensors" << std::endl;
         return false;
     }
 
