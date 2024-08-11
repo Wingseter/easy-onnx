@@ -7,7 +7,7 @@
 #include "../include/Workflow.h"
 #include <string.h>
 
-static std::shared_ptr<Workflow> workflow = nullptr;
+static Workflow * workflow = nullptr;
 static std::vector<float> flattened_output;
 static std::vector<int64_t> original_shape;
 
@@ -17,17 +17,16 @@ extern "C" bool allCheck(const char* modelPath, bool cpu_use, float* data, int n
 }
 
 extern "C" bool InitModel(const char* modelPath, bool cpu_use) {
-    workflow = std::make_shared<Workflow>();
-    workflow->init_model(modelPath, cpu_use);
+    workflow = new Workflow(modelPath, cpu_use);
     return true;
 }
 
 extern "C" void RunModelInt(int* data, int num_elements) {
-    if (workflow) {
-        workflow->run_model(data, num_elements);
-        flattened_output = workflow->getFlattenedOutput();
-        original_shape = workflow->getOriginalShape();
-    }
+//    if (workflow) {
+//        workflow->run_model(data, num_elements);
+//        flattened_output = workflow->getFlattenedOutput();
+//        original_shape = workflow->getOriginalShape();
+//    }
 }
 
 extern "C" void RunModelFloat(float* data, int num_elements) {
@@ -39,11 +38,11 @@ extern "C" void RunModelFloat(float* data, int num_elements) {
 }
 
 extern "C" void RunModelDouble(double* data, int num_elements) {
-    if (workflow) {
-        workflow->run_model(data, num_elements);
-        flattened_output = workflow->getFlattenedOutput();
-        original_shape = workflow->getOriginalShape();
-    }
+//    if (workflow) {
+//        workflow->run_model(data, num_elements);
+//        flattened_output = workflow->getFlattenedOutput();
+//        original_shape = workflow->getOriginalShape();
+//    }
 }
 
 extern "C" const float* GetFlattenedOutput(int* size) {
