@@ -2,7 +2,7 @@
 # EasyONNX
 
 ## Overview
-**EasyONNX** is a easy-to-use C++ library designed to simplify the integration of ONNX models into various applications, including those built in C++ and Unity (C#). It abstracts the complexity of model loading, data preprocessing, and inference execution, making it straightforward to apply machine learning models in your projects.
+**EasyONNX** is a easy-to-use C++ library designed to simplify the integration of ONNX models into various applications, including those built in C++ and Unity (C#). It abstracts the complexity of using ONNXRuntime process model loading, data preprocessing, and inference execution, making it straightforward to apply machine learning models in your projects.
 
 ## Key Features
 
