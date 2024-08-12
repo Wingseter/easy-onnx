@@ -8,14 +8,15 @@
 
 class Model {
 public:
-    void setModel(const char* model_path, bool cpu_use);
+    void SetSessionOption(bool cpu_use);
+    void setModel(const char* model_path);
     void setModelInOutput();
     void setModelInOutputTypeDim();
 
     std::vector<float> getFlattenedOutput() const;
     std::vector<int64_t> getOriginalShape() const;
 public:
-    bool runInference(float* data, int num_elements);
+    bool runInference(Ort::Value input_tensor);
 
 public:
     std::string getInputName() {return input_name;}
@@ -25,16 +26,23 @@ public:
 
 private:
     Ort::SessionOptions session_options;
-    shared_ptr<Ort::Session> session = nullptr;
 
+    // ONNX Runtime Environment and Session variable
+    // ENV Must be use as pointer if not it makes runtime error
+    std::unique_ptr<Ort::Session> session= nullptr;
+    std::unique_ptr<Ort::Env> env = nullptr;
+
+    // Input Variables
     std::string input_name;
     std::vector<int64_t> input_dims;
     ONNXTensorElementDataType input_type;
 
+    // Output Variables
     std::string output_name;
     std::vector<int64_t> output_dims;
     ONNXTensorElementDataType output_type;
 
+    // Inference Result
     std::vector<float> flattened_output;
     std::vector<int64_t> original_shape;
 };

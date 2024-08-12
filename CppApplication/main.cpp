@@ -3,7 +3,7 @@
 
 int main() {
     std::cout << "Hello This is ai Running Tester" << std::endl;
-    bool cpu_use = true;
+    bool cpu_use = false;
     const char* modelPath = "/Users/kwon/Workspace/C/ai-run-library/SampleModel/best_metric_model_0.7747.onnx";
 
 
@@ -24,8 +24,6 @@ int main() {
         data[i] = i % 100;  // Random values between 0 and 99
     }
 
-//    allCheck(modelPath, cpu_use, data.data(), total_elements);
-
     // model initialize
     if (!InitModel(modelPath, cpu_use)) {
         std::cerr << "Failed to initialize model." << std::endl;
@@ -34,12 +32,12 @@ int main() {
 
     RunModelFloat(data.data(), total_elements);
 
-//    // Get Final Result
-//    int size;
-//    const float* output = GetFlattenedOutput(&size);
-//
-//    std::cout << "final output size is " << size << std::endl;
-//    std::cout << "first element is " << output[0] << std::endl;
+    // Get Final Result
+    int size;
+    const float* output = GetFlattenedOutput(&size);
+
+    std::cout << "final output size is " << size << std::endl;
+    std::cout << "first element is " << output[0] << std::endl;
 
     return 0;
 }

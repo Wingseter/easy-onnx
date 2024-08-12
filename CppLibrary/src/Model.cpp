@@ -5,26 +5,46 @@
 #include "../include/Model.h"
 #include "../Utils/pch.h"
 
-
-void Model::setModel(const char * model_path, bool cpu_use) {
-    // ONNX Runtime environment
-    Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "airunner");
-
+void Model::SetSessionOption(bool cpu_use) {
     session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
 
-    session = make_shared<Ort::Session>(env, model_path, session_options);
+    unsigned int num_threads = std::thread::hardware_concurrency();
+    if (num_threads == 0) {
+        num_threads = 2; // Fallback to 2 if hardware_concurrency returns 0 (which is implementation-defined)
+    }
+
+    // Basically Use CPU
+    if (cpu_use) {
+        // On other platforms, set session options for using CPU
+        session_options.SetIntraOpNumThreads((int) num_threads / 2);
+        session_options.SetExecutionMode(ExecutionMode::ORT_PARALLEL);
+    } else {
+        // Set options for using GPU or other accelerators
+        session_options.SetExecutionMode(ExecutionMode::ORT_PARALLEL);
+    }
+}
+
+
+void Model::setModel(const char * modelPath) {
+    // ONNX Runtime environment
+    auto envLocal = std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "airunner");
+    env = std::move(envLocal);
+    auto sessionLocal = std::make_unique<Ort::Session>(*env, modelPath, session_options);
+    session = std::move(sessionLocal);
 }
 
 void Model::setModelInOutput() {
     Ort::AllocatorWithDefaultOptions allocator;
 
-    // Get input name
+    // Get input, output name
     auto input_name_allocated = session->GetInputNameAllocated(0, allocator);
-    input_name = std::string(input_name_allocated.get());
-
-    // Get output name
     auto output_name_allocated = session->GetOutputNameAllocated(0, allocator);
+
+    input_name = std::string(input_name_allocated.get());
     output_name = std::string(output_name_allocated.get());
+
+    std::cout << "Input Name: " << input_name << std::endl;
+    std::cout << "Output Name: " << output_name << std::endl;
 }
 
 
@@ -32,6 +52,7 @@ void Model::setModelInOutputTypeDim() {
     auto input_type_info = session->GetInputTypeInfo(0);
     auto input_tensor_info = input_type_info.GetTensorTypeAndShapeInfo();
 
+    // get input dimension and type
     input_dims = input_tensor_info.GetShape();
     input_dims[0] = 1;
     input_type = input_tensor_info.GetElementType();
@@ -39,32 +60,23 @@ void Model::setModelInOutputTypeDim() {
     auto output_type_info = session->GetOutputTypeInfo(0);
     auto output_tensor_info = output_type_info.GetTensorTypeAndShapeInfo();
 
+    // get output dimension and type
     output_dims = input_tensor_info.GetShape();
     output_type = input_tensor_info.GetElementType();
 
 }
 
-bool Model::runInference(float* data, int num_elements) {
+bool Model::runInference(Ort::Value input_tensor) {
     // Check if the session is valid
     if (!session) {
         std::cerr << "Session is not initialized!" << std::endl;
         return false;
     }
-    Ort::AllocatorWithDefaultOptions allocator;
-    Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
-
-    std::vector<int64_t> dimensions = {1, 4, 128, 128, 80};
-
-    auto input_tensor = Ort::Value::CreateTensor<float>(memory_info, data, num_elements,  dimensions.data(), dimensions.size());
-
-    std::cout << "Session is valid. Starting inference..." << std::endl;
-
     // Prepare input and output names as const char* arrays
     const char* input_names[] = { input_name.c_str() };
     const char* output_names[] = { output_name.c_str() };
-
-    std::cout << "Input name: " << input_names[0] << std::endl;
-    std::cout << "Output name: " << output_names[0] << std::endl;
+    std::cout << "Input name: " << input_name << std::endl;
+    std::cout << "Output name: " << output_name << std::endl;
 
     // Validate input tensor
     std::cout << "Validating input tensor..." << std::endl;
@@ -74,10 +86,9 @@ bool Model::runInference(float* data, int num_elements) {
     for (const auto& dim : input_shape) {
         std::cout << dim << " ";
     }
-    std::cout << std::endl;
 
-    // Run inference
     std::cout << "Running inference..." << std::endl;
+
     auto output_tensors = session->Run(Ort::RunOptions{nullptr},
                                   input_names, &input_tensor, 1,
                                   output_names, 1);
