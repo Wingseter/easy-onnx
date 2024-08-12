@@ -11,7 +11,7 @@
 void Workflow::init_model(const char* modelPath, bool cpu_use) {
     std::cout << "Initializing model..." << std::endl;
 
-    model_ = std::make_unique<Model>();
+    model_ = std::make_shared<Model>();
 
     model_->SetSessionOption(cpu_use);
     model_->setModel(modelPath);
@@ -37,7 +37,7 @@ void Workflow::init_model(const char* modelPath, bool cpu_use) {
     // input_type 출력
     std::cout << "Input type: " << Utils::onnxTypeToString(input_type) << std::endl;
 
-    data_loader_ = std::make_unique<DataLoader>(model_->getInputDims(), model_->getInputType());
+    data_loader_ = std::make_shared<DataLoader>(model_->getInputDims(), model_->getInputType());
     std::cout << "Data loader initialized with input dimensions and type." << std::endl;
 
 
