@@ -86,6 +86,7 @@ bool Model::runInference(Ort::Value input_tensor) {
     for (const auto& dim : input_shape) {
         std::cout << dim << " ";
     }
+    std::cout  << std::endl;
 
     std::cout << "Running inference..." << std::endl;
 
