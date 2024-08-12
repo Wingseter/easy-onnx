@@ -3,7 +3,7 @@
 
 int main() {
     std::cout << "Hello This is ai Running Tester" << std::endl;
-    bool cpu_use = true;
+    bool cpu_use = false;
     const char* modelPath = "/Users/kwon/Workspace/C/ai-run-library/SampleModel/best_metric_model_0.7747.onnx";
 
 

@@ -19,13 +19,8 @@ void Model::SetSessionOption(bool cpu_use) {
         session_options.SetIntraOpNumThreads((int) num_threads / 2);
         session_options.SetExecutionMode(ExecutionMode::ORT_PARALLEL);
     } else {
-#ifdef __APPLE__
-        // On macOS, use Core ML if available and specified
-        Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_CoreML(session_options, 0));
-#else
         // Set options for using GPU or other accelerators
         session_options.SetExecutionMode(ExecutionMode::ORT_PARALLEL);
-#endif
     }
 }
 
