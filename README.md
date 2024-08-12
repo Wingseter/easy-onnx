@@ -2,14 +2,13 @@
 # EasyONNX
 
 ## Overview
-**EasyONNX** is a lightweight, easy-to-use C++ library designed to simplify the integration of ONNX models into various applications, including those built in C++ and Unity (C#). It abstracts the complexity of model loading, data preprocessing, and inference execution, making it straightforward to apply machine learning models in your projects.
+**EasyONNX** is a easy-to-use C++ library designed to simplify the integration of ONNX models into various applications, including those built in C++ and Unity (C#). It abstracts the complexity of model loading, data preprocessing, and inference execution, making it straightforward to apply machine learning models in your projects.
 
 ## Key Features
 
-1. **Cross-Platform Support**:  
-   - **Windows**: Uses DirectML for accelerated execution.
-   - **macOS**: Supports models using CoreML, although limited by input size.
-   - **Linux**: Supported via ONNX Runtime.
+1. **Platform Support**:  
+   - **Windows**: (Uses DirectML for accelerated execution.)
+   - **macOS**
 
 2. **Flexible Data Handling**:  
    - Supports multiple data types (`int`, `float`, `double`), automatically converting inputs to the appropriate type for model inference.
@@ -23,10 +22,7 @@
 4. **Easy Integration with Unity**:
    - **C# Support**: Provides examples and helper functions to integrate with Unity applications.
 
-5. **CMake Build System**: 
-   - Easy to configure and build on different platforms.
-
-6. **Extensible**:  
+5. **Extensible**:  
    - The library is written in C++, making it easily extendable and adaptable for various languages and environments.
 
 ## API Functions
@@ -130,16 +126,16 @@ public class EasyONNXExample {
 }
 ```
 
-## Build Instructions
+## Usage
 
-1. **Using CMake**:
+1. **If you want to build yourself**:
    - Navigate to the `CppLibrary` directory.
    - Run `cmake .` to configure the build.
    - Run `make` (or equivalent) to build the library.
 
-2. **Download and Build**:
+2. **Download and Use**:
    - Download the zip file from the release section.
-   - Extract it and follow the same steps as above.
+   - Extract it to your target applcation folder
 
 ## Documentation and Support
 - **Detailed Documentation**: Comprehensive documentation will be provided, including API references, usage examples, and troubleshooting guides.
