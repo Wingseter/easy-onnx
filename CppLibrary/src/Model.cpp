@@ -45,8 +45,11 @@ void Model::setModelInOutput() {
     auto input_name_allocated = session->GetInputNameAllocated(0, allocator);
     auto output_name_allocated = session->GetOutputNameAllocated(0, allocator);
 
-    input_names = { input_name_allocated.get() };
-    output_names = { output_name_allocated.get() };
+    input_name = std::string(input_name_allocated.get());
+    output_name = std::string(output_name_allocated.get());
+
+    std::cout << "Input Name: " << input_name << std::endl;
+    std::cout << "Output Name: " << output_name << std::endl;
 }
 
 
@@ -74,8 +77,11 @@ bool Model::runInference(Ort::Value input_tensor) {
         std::cerr << "Session is not initialized!" << std::endl;
         return false;
     }
-    std::cout << "Input name: " << input_names[0] << std::endl;
-    std::cout << "Output name: " << output_names[0] << std::endl;
+    // Prepare input and output names as const char* arrays
+    const char* input_names[] = { input_name.c_str() };
+    const char* output_names[] = { output_name.c_str() };
+    std::cout << "Input name: " << input_name << std::endl;
+    std::cout << "Output name: " << output_name << std::endl;
 
     // Validate input tensor
     std::cout << "Validating input tensor..." << std::endl;
@@ -89,8 +95,8 @@ bool Model::runInference(Ort::Value input_tensor) {
     std::cout << "Running inference..." << std::endl;
 
     auto output_tensors = session->Run(Ort::RunOptions{nullptr},
-                                  input_names.data(), &input_tensor, 1,
-                                  output_names.data(), 1);
+                                  input_names, &input_tensor, 1,
+                                  output_names, 1);
 
     // Check if we have any output tensors
     if (output_tensors.empty()) {

@@ -19,8 +19,8 @@ public:
     bool runInference(Ort::Value input_tensor);
 
 public:
-    std::string getInputName() {return (std::string)input_names[0];}
-    std::string getOutputName(){ return (std::string) output_names[0];}
+    std::string getInputName() {return input_name;}
+    std::string getOutputName(){ return output_name;}
     std::vector<int64_t> getInputDims() const { return input_dims; }
     ONNXTensorElementDataType getInputType() const { return input_type; }
 
@@ -33,12 +33,12 @@ private:
     std::unique_ptr<Ort::Env> env = nullptr;
 
     // Input Variables
-    std::vector<const char*> input_names;
+    std::string input_name;
     std::vector<int64_t> input_dims;
     ONNXTensorElementDataType input_type;
 
     // Output Variables
-    std::vector<const char*> output_names;
+    std::string output_name;
     std::vector<int64_t> output_dims;
     ONNXTensorElementDataType output_type;
 
