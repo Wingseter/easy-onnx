@@ -11,7 +11,21 @@
 void Workflow::init_model(const char* modelPath, bool cpu_use) {
     std::cout << "Initializing model..." << std::endl;
 
-    model_ = std::make_shared<Model>();
+    // if new model is same as previous one pass model Initialize
+    if (std::strcmp(previous.c_str(), modelPath) == 0){
+        std::cout << "model already initialized pass initializing" << std::endl;
+        return;
+    }
+
+    previous = string(modelPath);
+//
+    if(model_ == nullptr)
+        model_ = std::make_shared<Model>();
+    if(data_loader_ != nullptr)
+        data_loader_.reset();
+
+    if(model_->IsInitialized())
+        model_->resetModel();
 
     model_->SetSessionOption(cpu_use);
     model_->setModel(modelPath);

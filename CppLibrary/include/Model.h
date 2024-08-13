@@ -12,20 +12,22 @@ public:
     void setModel(const char* model_path);
     void setModelInOutput();
     void setModelInOutputTypeDim();
+    void resetModel();
 
     std::vector<float> getFlattenedOutput() const;
     std::vector<int64_t> getOriginalShape() const;
 public:
     bool runInference(Ort::Value input_tensor);
+    bool IsInitialized(){ return initialized; }
 
 public:
     std::string getInputName() {return input_name;}
     std::string getOutputName(){ return output_name;}
     std::vector<int64_t> getInputDims() const { return input_dims; }
     ONNXTensorElementDataType getInputType() const { return input_type; }
-
 private:
     Ort::SessionOptions session_options;
+    bool initialized = false;
 
     // ONNX Runtime Environment and Session variable
     // ENV Must be use as pointer if not it makes runtime error
