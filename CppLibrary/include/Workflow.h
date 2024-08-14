@@ -19,6 +19,7 @@ private:
     template <typename T>
     void run_inference(T* data, int num_elements);
 
+    std::string previous = "";
     std::shared_ptr<Model> model_ = nullptr;
     std::shared_ptr<DataLoader> data_loader_ = nullptr;
 };

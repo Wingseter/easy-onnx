@@ -15,6 +15,7 @@ void Model::SetSessionOption(bool cpu_use) {
 
     // Basically Use CPU
     if (cpu_use) {
+        std::cout << "what?" << std::endl;
         // On other platforms, set session options for using CPU
         session_options.SetIntraOpNumThreads((int) num_threads / 2);
         session_options.SetExecutionMode(ExecutionMode::ORT_PARALLEL);
@@ -26,6 +27,7 @@ void Model::SetSessionOption(bool cpu_use) {
 
 
 void Model::setModel(const char * modelPath) {
+    initialized = true;
     // ONNX Runtime environment
     auto envLocal = std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "airunner");
     env = std::move(envLocal);
@@ -128,4 +130,13 @@ std::vector<float> Model::getFlattenedOutput() const {
 
 std::vector<int64_t> Model::getOriginalShape() const {
     return original_shape;
+}
+
+void Model::resetModel() {
+    if (session) {
+        session->release();
+        env->release();
+        session = nullptr;
+        env = nullptr;
+    }
 }
