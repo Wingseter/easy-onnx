@@ -53,5 +53,6 @@ CppApplication/cmake-build-debug/
 CppApplication/.idea/
 debugging/.idea/
 UnityApplication/Assets/Scripts/.idea
+UnityApplication/Assets/Plugins/
 
 SampleModel/
