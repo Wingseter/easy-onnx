@@ -5,9 +5,15 @@
 #include <string>
 #include <memory>
 #include <cstdint>
+#include <future>
+#include <functional>
+#include <atomic>
 
 class Model;
 class DataLoader;
+
+// Callback type for async inference
+using InferenceCallback = std::function<void(bool success, const std::vector<float>& output)>;
 
 class Workflow {
 public:
@@ -29,6 +35,21 @@ public:
     // Get elements per sample (for batch processing)
     int getElementsPerSample() const;
 
+    // Async inference - Future based
+    template <typename T>
+    std::future<bool> run_model_async(T* data, int num_elements);
+
+    template <typename T>
+    std::future<bool> run_model_batch_async(T* data, int batch_size, int elements_per_sample);
+
+    // Async inference - Callback based
+    template <typename T>
+    void run_model_async_callback(T* data, int num_elements, InferenceCallback callback);
+
+    // Async status
+    bool isInferenceRunning() const { return is_running_.load(); }
+    void waitForInference();
+
     void run_test(const char* modelPath, bool cpu_use, float* data, int num_elements);
 
 private:
@@ -41,6 +62,11 @@ private:
     std::string previous = "";
     std::shared_ptr<Model> model_ = nullptr;
     std::shared_ptr<DataLoader> data_loader_ = nullptr;
+
+    // Async state
+    std::atomic<bool> is_running_{false};
+    std::future<bool> current_future_;
+    std::mutex async_mutex_;
 };
 
 #endif //AIRUNNER_WORKFLOW_H

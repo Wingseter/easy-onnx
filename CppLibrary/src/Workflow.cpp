@@ -7,6 +7,7 @@
 #include "../include/Model.h"
 #include "../include/DataLoader.h"
 #include "../include/Utils.h"
+#include <thread>
 
 void Workflow::init_model(const char* modelPath, bool cpu_use) {
     std::cout << "Initializing model..." << std::endl;
@@ -151,3 +152,81 @@ const std::vector<float>& Workflow::getFlattenedOutput() const {
 const std::vector<int64_t>& Workflow::getOriginalShape() const {
     return model_->getOriginalShape();
 }
+
+// Async inference implementations
+template <typename T>
+std::future<bool> Workflow::run_model_async(T* data, int num_elements) {
+    std::lock_guard<std::mutex> lock(async_mutex_);
+    is_running_.store(true);
+
+    return std::async(std::launch::async, [this, data, num_elements]() {
+        try {
+            run_inference(data, num_elements);
+            is_running_.store(false);
+            return true;
+        } catch (const std::exception& e) {
+            std::cerr << "Async inference error: " << e.what() << std::endl;
+            is_running_.store(false);
+            return false;
+        }
+    });
+}
+
+template <typename T>
+std::future<bool> Workflow::run_model_batch_async(T* data, int batch_size, int elements_per_sample) {
+    std::lock_guard<std::mutex> lock(async_mutex_);
+    is_running_.store(true);
+
+    return std::async(std::launch::async, [this, data, batch_size, elements_per_sample]() {
+        try {
+            run_batch_inference(data, batch_size, elements_per_sample);
+            is_running_.store(false);
+            return true;
+        } catch (const std::exception& e) {
+            std::cerr << "Async batch inference error: " << e.what() << std::endl;
+            is_running_.store(false);
+            return false;
+        }
+    });
+}
+
+template <typename T>
+void Workflow::run_model_async_callback(T* data, int num_elements, InferenceCallback callback) {
+    std::lock_guard<std::mutex> lock(async_mutex_);
+    is_running_.store(true);
+
+    std::thread([this, data, num_elements, callback]() {
+        try {
+            run_inference(data, num_elements);
+            is_running_.store(false);
+            if (callback) {
+                callback(true, model_->getFlattenedOutput());
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Async inference error: " << e.what() << std::endl;
+            is_running_.store(false);
+            if (callback) {
+                callback(false, {});
+            }
+        }
+    }).detach();
+}
+
+void Workflow::waitForInference() {
+    while (is_running_.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
+// Explicit template instantiations for async methods
+template std::future<bool> Workflow::run_model_async<int>(int*, int);
+template std::future<bool> Workflow::run_model_async<float>(float*, int);
+template std::future<bool> Workflow::run_model_async<double>(double*, int);
+
+template std::future<bool> Workflow::run_model_batch_async<int>(int*, int, int);
+template std::future<bool> Workflow::run_model_batch_async<float>(float*, int, int);
+template std::future<bool> Workflow::run_model_batch_async<double>(double*, int, int);
+
+template void Workflow::run_model_async_callback<int>(int*, int, InferenceCallback);
+template void Workflow::run_model_async_callback<float>(float*, int, InferenceCallback);
+template void Workflow::run_model_async_callback<double>(double*, int, InferenceCallback);
