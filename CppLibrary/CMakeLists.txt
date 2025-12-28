@@ -3,15 +3,19 @@ project(aiRunner)
 
 set(CMAKE_CXX_STANDARD 14)
 
+# Get the root directory (works both standalone and as subdirectory)
+get_filename_component(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+
 # 플랫폼별 Include 및 Link 디렉토리 설정
 if(WIN32)
-    include_directories(${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/windows/include)
-    link_directories(${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/windows/lib)
+    include_directories(${ROOT_DIR}/Library/ONNXRuntime/windows/include)
+    link_directories(${ROOT_DIR}/Library/ONNXRuntime/windows/lib)
 elseif(APPLE)
-    include_directories(${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/mac/include)
-    link_directories(${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/mac/lib)
+    include_directories(${ROOT_DIR}/Library/ONNXRuntime/mac/include)
+    link_directories(${ROOT_DIR}/Library/ONNXRuntime/mac/lib)
 else()
-    # 다른 플랫폼을 위한 설정 (필요시 추가)
+    include_directories(${ROOT_DIR}/Library/ONNXRuntime/linux/include)
+    link_directories(${ROOT_DIR}/Library/ONNXRuntime/linux/lib)
 endif()
 
 # Add library
@@ -44,29 +48,29 @@ target_link_libraries(aiRunner onnxruntime)
 # Copy the built library to the Final Output based on the platform
 if(WIN32)
     add_custom_command(TARGET aiRunner POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${CMAKE_SOURCE_DIR}/../Library/aiRunner/windows/lib/$<TARGET_FILE_NAME:aiRunner>
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${ROOT_DIR}/Library/aiRunner/windows/lib/$<TARGET_FILE_NAME:aiRunner>
             COMMENT "Copying aiRunner library to output folder (Windows)")
 elseif(APPLE)
     add_custom_command(TARGET aiRunner POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${CMAKE_SOURCE_DIR}/../Library/aiRunner/mac/lib/$<TARGET_FILE_NAME:aiRunner>
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${ROOT_DIR}/Library/aiRunner/mac/lib/$<TARGET_FILE_NAME:aiRunner>
             COMMENT "Copying aiRunner library to output folder (macOS)")
 else()
     add_custom_command(TARGET aiRunner POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${CMAKE_SOURCE_DIR}/../Library/aiRunner/other/lib/$<TARGET_FILE_NAME:aiRunner>
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:aiRunner> ${ROOT_DIR}/Library/aiRunner/other/lib/$<TARGET_FILE_NAME:aiRunner>
             COMMENT "Copying aiRunner library to output folder (Other)")
 endif()
 
 # Copy the include directory to the Final Output
 if(WIN32)
     add_custom_command(TARGET aiRunner POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/../Library/aiRunner/windows/include
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/include ${ROOT_DIR}/Library/aiRunner/windows/include
             COMMENT "Copying aiRunner include files to output folder")
 elseif(APPLE)
     add_custom_command(TARGET aiRunner POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/../Library/aiRunner/mac/include
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/include ${ROOT_DIR}/Library/aiRunner/mac/include
             COMMENT "Copying aiRunner include files to output folder")
 else()
     add_custom_command(TARGET aiRunner POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/../Library/aiRunner/other/include
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/include ${ROOT_DIR}/Library/aiRunner/other/include
             COMMENT "Copying aiRunner include files to output folder")
 endif()
