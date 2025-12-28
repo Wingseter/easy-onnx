@@ -5,6 +5,7 @@
 #include "../Utils/pch.h"
 #include "../include/aiRunner.h"
 #include "../include/Workflow.h"
+#include "../include/ModelManager.h"
 #include <string.h>
 #include <future>
 #include <atomic>
@@ -182,4 +183,99 @@ extern "C" bool GetAsyncResult() {
         }
     }
     return async_result.load();
+}
+
+// ============================================
+// Multi-Model Management API Implementation
+// ============================================
+
+// Static storage for instance outputs (to maintain pointer validity)
+static std::map<int, std::vector<float>> instance_outputs;
+static std::map<int, std::vector<int64_t>> instance_shapes;
+
+extern "C" int CreateModelInstance() {
+    return ModelManager::getInstance().createInstance();
+}
+
+extern "C" bool DestroyModelInstance(int instance_id) {
+    // Clean up cached outputs
+    instance_outputs.erase(instance_id);
+    instance_shapes.erase(instance_id);
+    return ModelManager::getInstance().destroyInstance(instance_id);
+}
+
+extern "C" bool InitModelInstance(int instance_id, const char* modelPath, bool cpu_use) {
+    return ModelManager::getInstance().initModel(instance_id, modelPath, cpu_use);
+}
+
+extern "C" bool RunModelInstanceFloat(int instance_id, float* data, int num_elements) {
+    bool result = ModelManager::getInstance().runModel(instance_id, data, num_elements);
+    if (result) {
+        instance_outputs[instance_id] = ModelManager::getInstance().getFlattenedOutput(instance_id);
+        instance_shapes[instance_id] = ModelManager::getInstance().getOriginalShape(instance_id);
+    }
+    return result;
+}
+
+extern "C" bool RunModelInstanceInt(int instance_id, int* data, int num_elements) {
+    bool result = ModelManager::getInstance().runModel(instance_id, data, num_elements);
+    if (result) {
+        instance_outputs[instance_id] = ModelManager::getInstance().getFlattenedOutput(instance_id);
+        instance_shapes[instance_id] = ModelManager::getInstance().getOriginalShape(instance_id);
+    }
+    return result;
+}
+
+extern "C" bool RunModelInstanceDouble(int instance_id, double* data, int num_elements) {
+    bool result = ModelManager::getInstance().runModel(instance_id, data, num_elements);
+    if (result) {
+        instance_outputs[instance_id] = ModelManager::getInstance().getFlattenedOutput(instance_id);
+        instance_shapes[instance_id] = ModelManager::getInstance().getOriginalShape(instance_id);
+    }
+    return result;
+}
+
+extern "C" bool RunModelInstanceBatchFloat(int instance_id, float* data, int batch_size, int elements_per_sample) {
+    bool result = ModelManager::getInstance().runModelBatch(instance_id, data, batch_size, elements_per_sample);
+    if (result) {
+        instance_outputs[instance_id] = ModelManager::getInstance().getFlattenedOutput(instance_id);
+        instance_shapes[instance_id] = ModelManager::getInstance().getOriginalShape(instance_id);
+    }
+    return result;
+}
+
+extern "C" const float* GetInstanceFlattenedOutput(int instance_id, int* size) {
+    auto it = instance_outputs.find(instance_id);
+    if (it != instance_outputs.end()) {
+        if (size) {
+            *size = static_cast<int>(it->second.size());
+        }
+        return it->second.data();
+    }
+    if (size) *size = 0;
+    return nullptr;
+}
+
+extern "C" const int64_t* GetInstanceOriginalShape(int instance_id, int* size) {
+    auto it = instance_shapes.find(instance_id);
+    if (it != instance_shapes.end()) {
+        if (size) {
+            *size = static_cast<int>(it->second.size());
+        }
+        return it->second.data();
+    }
+    if (size) *size = 0;
+    return nullptr;
+}
+
+extern "C" int GetInstanceElementsPerSample(int instance_id) {
+    return ModelManager::getInstance().getElementsPerSample(instance_id);
+}
+
+extern "C" bool IsInstanceInitialized(int instance_id) {
+    return ModelManager::getInstance().isInitialized(instance_id);
+}
+
+extern "C" int GetModelInstanceCount() {
+    return ModelManager::getInstance().getInstanceCount();
 }

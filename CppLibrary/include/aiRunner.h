@@ -43,3 +43,31 @@ extern "C" const int64_t* GetOriginalShape(int* size);
 // Utility
 extern "C" int GetElementsPerSample();
 extern "C" bool allCheck(const char* modelPath, bool cpu_use, float* data, int num_elements);
+
+// ============================================
+// Multi-Model Management API
+// ============================================
+
+// Create/Destroy model instances
+extern "C" int CreateModelInstance();                    // Returns instance ID
+extern "C" bool DestroyModelInstance(int instance_id);
+
+// Initialize model for specific instance
+extern "C" bool InitModelInstance(int instance_id, const char* modelPath, bool cpu_use);
+
+// Run inference on specific instance
+extern "C" bool RunModelInstanceFloat(int instance_id, float* data, int num_elements);
+extern "C" bool RunModelInstanceInt(int instance_id, int* data, int num_elements);
+extern "C" bool RunModelInstanceDouble(int instance_id, double* data, int num_elements);
+
+// Run batch inference on specific instance
+extern "C" bool RunModelInstanceBatchFloat(int instance_id, float* data, int batch_size, int elements_per_sample);
+
+// Get output from specific instance
+extern "C" const float* GetInstanceFlattenedOutput(int instance_id, int* size);
+extern "C" const int64_t* GetInstanceOriginalShape(int instance_id, int* size);
+
+// Instance info
+extern "C" int GetInstanceElementsPerSample(int instance_id);
+extern "C" bool IsInstanceInitialized(int instance_id);
+extern "C" int GetModelInstanceCount();
