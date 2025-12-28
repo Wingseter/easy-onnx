@@ -24,10 +24,10 @@ void Workflow::init_model(const char* modelPath, bool cpu_use) {
     if(data_loader_ != nullptr)
         data_loader_.reset();
 
-    if(model_->IsInitialized())
+    if(model_->isInitialized())
         model_->resetModel();
 
-    model_->SetSessionOption(cpu_use);
+    model_->setSessionOption(cpu_use);
     model_->setModel(modelPath);
     std::cout << "Model loaded from path: " << modelPath << std::endl;
 
@@ -117,10 +117,10 @@ void Workflow::run_inference(T* data, int num_elements) {
     model_->runInference(std::move(input_tensor));
 }
 
-std::vector<float> Workflow::getFlattenedOutput() const {
+const std::vector<float>& Workflow::getFlattenedOutput() const {
     return model_->getFlattenedOutput();
 }
 
-std::vector<int64_t> Workflow::getOriginalShape() const {
+const std::vector<int64_t>& Workflow::getOriginalShape() const {
     return model_->getOriginalShape();
 }

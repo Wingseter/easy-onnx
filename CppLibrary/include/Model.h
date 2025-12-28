@@ -5,20 +5,25 @@
 #ifndef AIRUNNER_MODEL_H
 #define AIRUNNER_MODEL_H
 
+#include <vector>
+#include <string>
+#include <memory>
+#include <onnxruntime_cxx_api.h>
 
 class Model {
 public:
-    void SetSessionOption(bool cpu_use);
+    void setSessionOption(bool cpu_use);
     void setModel(const char* model_path);
     void setModelInOutput();
     void setModelInOutputTypeDim();
     void resetModel();
 
-    std::vector<float> getFlattenedOutput() const;
-    std::vector<int64_t> getOriginalShape() const;
+    const std::vector<float>& getFlattenedOutput() const;
+    const std::vector<int64_t>& getOriginalShape() const;
+
 public:
     bool runInference(Ort::Value input_tensor);
-    bool IsInitialized(){ return initialized; }
+    bool isInitialized() const { return initialized; }
 
 public:
     std::string getInputName() {return input_name;}

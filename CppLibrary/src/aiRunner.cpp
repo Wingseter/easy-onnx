@@ -28,9 +28,15 @@ extern "C" bool allCheck(const char* modelPath, bool cpu_use, float* data, int n
 }
 
 extern "C" bool InitModel(const char* modelPath, bool cpu_use) {
-    workflow = std::make_shared<Workflow>();
-    workflow->init_model(modelPath, cpu_use);
-    return true;
+    try {
+        workflow = std::make_shared<Workflow>();
+        workflow->init_model(modelPath, cpu_use);
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Error initializing model: " << e.what() << std::endl;
+        workflow = nullptr;
+        return false;
+    }
 }
 
 extern "C" void RunModelInt(int* data, int num_elements) {
@@ -66,7 +72,7 @@ extern "C" const float* GetFlattenedOutput(int* size) {
 
 extern "C" const int64_t* GetOriginalShape(int* size) {
     if (size) {
-        *size = static_cast<int>(flattened_output.size());
+        *size = static_cast<int>(original_shape.size());
     }
     return original_shape.data();
 }

@@ -1,6 +1,11 @@
 #ifndef AIRUNNER_WORKFLOW_H
 #define AIRUNNER_WORKFLOW_H
 
+#include <vector>
+#include <string>
+#include <memory>
+#include <cstdint>
+
 class Model;
 class DataLoader;
 
@@ -11,8 +16,10 @@ public:
     void run_model(int* data, int num_elements);
     void run_model(float* data, int num_elements);
     void run_model(double* data, int num_elements);
-    std::vector<float> getFlattenedOutput() const;
-    std::vector<int64_t> getOriginalShape() const;
+
+    const std::vector<float>& getFlattenedOutput() const;
+    const std::vector<int64_t>& getOriginalShape() const;
+
     void run_test(const char* modelPath, bool cpu_use, float* data, int num_elements);
 
 private:

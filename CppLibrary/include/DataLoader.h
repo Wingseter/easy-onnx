@@ -5,8 +5,9 @@
 #ifndef AIRUNNER_DATALOADER_H
 #define AIRUNNER_DATALOADER_H
 
-
-class Model;
+#include <vector>
+#include <cstdint>
+#include <onnxruntime_cxx_api.h>
 
 class DataLoader {
 public:
@@ -14,7 +15,7 @@ public:
 
     template <typename T>
     Ort::Value load_data(T* data, int num_elements);
-    Ort::Value float_load_data(float * data, int num_elements);
+    Ort::Value float_load_data(float* data, int num_elements);
 
 private:
     std::vector<int64_t> input_dims_;
