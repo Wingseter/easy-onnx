@@ -5,7 +5,7 @@
 #include "../include/Model.h"
 #include "../Utils/pch.h"
 
-void Model::SetSessionOption(bool cpu_use) {
+void Model::setSessionOption(bool cpu_use) {
     session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
 
     unsigned int num_threads = std::thread::hardware_concurrency();
@@ -63,8 +63,8 @@ void Model::setModelInOutputTypeDim() {
     auto output_tensor_info = output_type_info.GetTensorTypeAndShapeInfo();
 
     // get output dimension and type
-    output_dims = input_tensor_info.GetShape();
-    output_type = input_tensor_info.GetElementType();
+    output_dims = output_tensor_info.GetShape();
+    output_type = output_tensor_info.GetElementType();
 
 }
 
@@ -124,19 +124,17 @@ bool Model::runInference(Ort::Value input_tensor) {
     return true;
 }
 
-std::vector<float> Model::getFlattenedOutput() const {
+const std::vector<float>& Model::getFlattenedOutput() const {
     return flattened_output;
 }
 
-std::vector<int64_t> Model::getOriginalShape() const {
+const std::vector<int64_t>& Model::getOriginalShape() const {
     return original_shape;
 }
 
 void Model::resetModel() {
     if (session) {
-        session->release();
-        env->release();
-        session = nullptr;
-        env = nullptr;
+        session.reset();
+        env.reset();
     }
 }
