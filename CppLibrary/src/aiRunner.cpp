@@ -6,10 +6,16 @@
 #include "../include/aiRunner.h"
 #include "../include/Workflow.h"
 #include <string.h>
+#include <future>
+#include <atomic>
 
 static std::shared_ptr<Workflow> workflow = nullptr;
 static std::vector<float> flattened_output;
 static std::vector<int64_t> original_shape;
+
+// Async state
+static std::future<bool> async_future;
+static std::atomic<bool> async_result{false};
 
 extern "C" bool allCheck(const char* modelPath, bool cpu_use, float* data, int num_elements) {
     if (!workflow) {
@@ -107,4 +113,73 @@ extern "C" int GetElementsPerSample() {
         return workflow->getElementsPerSample();
     }
     return 0;
+}
+
+// Async inference implementations
+extern "C" void RunModelFloatAsync(float* data, int num_elements) {
+    if (workflow) {
+        async_future = workflow->run_model_async(data, num_elements);
+    }
+}
+
+extern "C" void RunModelIntAsync(int* data, int num_elements) {
+    if (workflow) {
+        async_future = workflow->run_model_async(data, num_elements);
+    }
+}
+
+extern "C" void RunModelDoubleAsync(double* data, int num_elements) {
+    if (workflow) {
+        async_future = workflow->run_model_async(data, num_elements);
+    }
+}
+
+extern "C" void RunModelBatchFloatAsync(float* data, int batch_size, int elements_per_sample) {
+    if (workflow) {
+        async_future = workflow->run_model_batch_async(data, batch_size, elements_per_sample);
+    }
+}
+
+extern "C" void RunModelFloatAsyncCallback(float* data, int num_elements, InferenceCallbackC callback, void* user_data) {
+    if (workflow) {
+        workflow->run_model_async_callback(data, num_elements,
+            [callback, user_data](bool success, const std::vector<float>& output) {
+                if (callback) {
+                    // Update static vectors for GetFlattenedOutput
+                    flattened_output = output;
+                    callback(success, output.data(), static_cast<int>(output.size()), user_data);
+                }
+            });
+    }
+}
+
+extern "C" bool IsInferenceRunning() {
+    if (workflow) {
+        return workflow->isInferenceRunning();
+    }
+    return false;
+}
+
+extern "C" void WaitForInference() {
+    if (workflow) {
+        workflow->waitForInference();
+        // Update output after waiting
+        if (async_future.valid()) {
+            async_result.store(async_future.get());
+            flattened_output = workflow->getFlattenedOutput();
+            original_shape = workflow->getOriginalShape();
+        }
+    }
+}
+
+extern "C" bool GetAsyncResult() {
+    // If future is still valid, wait for it and get result
+    if (async_future.valid()) {
+        async_result.store(async_future.get());
+        if (workflow) {
+            flattened_output = workflow->getFlattenedOutput();
+            original_shape = workflow->getOriginalShape();
+        }
+    }
+    return async_result.load();
 }

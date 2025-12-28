@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <thread>
 #include "aiRunner.h"
 
 int main() {
@@ -84,6 +85,59 @@ int main() {
         double speedup = static_cast<double>(single_x2_duration.count()) / batch_duration.count();
         std::cout << "Speedup: " << speedup << "x" << std::endl;
     }
+
+    // ===== Async Inference Test =====
+    std::cout << "\n--- Async Inference Test ---" << std::endl;
+
+    // Start async inference
+    std::cout << "Starting async inference..." << std::endl;
+    start = std::chrono::high_resolution_clock::now();
+    RunModelFloatAsync(single_data.data(), elements_per_sample);
+
+    // Do other work while inference is running
+    std::cout << "Inference running in background..." << std::endl;
+    int work_count = 0;
+    while (IsInferenceRunning()) {
+        // Simulate doing other work
+        work_count++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::cout << "  Working... (" << work_count * 50 << " ms elapsed)" << std::endl;
+    }
+
+    // Get result
+    bool async_success = GetAsyncResult();
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+    output = GetFlattenedOutput(&size);
+    std::cout << "Async inference completed: " << (async_success ? "SUCCESS" : "FAILED") << std::endl;
+    std::cout << "Output size: " << size << std::endl;
+    std::cout << "First element: " << output[0] << std::endl;
+    std::cout << "Total time (including background work): " << duration.count() << " ms" << std::endl;
+
+    // ===== Async Batch Inference Test =====
+    std::cout << "\n--- Async Batch Inference Test ---" << std::endl;
+
+    start = std::chrono::high_resolution_clock::now();
+    RunModelBatchFloatAsync(batch_data.data(), 2, elements_per_sample);
+
+    std::cout << "Batch inference running in background..." << std::endl;
+    WaitForInference();  // Wait for completion
+
+    async_success = GetAsyncResult();
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+    output = GetFlattenedOutput(&size);
+    shape = GetOriginalShape(&shape_size);
+    std::cout << "Async batch inference: " << (async_success ? "SUCCESS" : "FAILED") << std::endl;
+    std::cout << "Output shape: [";
+    for (int i = 0; i < shape_size; ++i) {
+        std::cout << shape[i];
+        if (i < shape_size - 1) std::cout << ", ";
+    }
+    std::cout << "]" << std::endl;
+    std::cout << "Inference time: " << duration.count() << " ms" << std::endl;
 
     std::cout << "\n===== Test Complete =====" << std::endl;
     return 0;
