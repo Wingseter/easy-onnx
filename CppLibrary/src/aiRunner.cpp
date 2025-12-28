@@ -76,3 +76,35 @@ extern "C" const int64_t* GetOriginalShape(int* size) {
     }
     return original_shape.data();
 }
+
+// Batch inference APIs
+extern "C" void RunModelBatchInt(int* data, int batch_size, int elements_per_sample) {
+    if (workflow) {
+        workflow->run_model_batch(data, batch_size, elements_per_sample);
+        flattened_output = workflow->getFlattenedOutput();
+        original_shape = workflow->getOriginalShape();
+    }
+}
+
+extern "C" void RunModelBatchFloat(float* data, int batch_size, int elements_per_sample) {
+    if (workflow) {
+        workflow->run_model_batch(data, batch_size, elements_per_sample);
+        flattened_output = workflow->getFlattenedOutput();
+        original_shape = workflow->getOriginalShape();
+    }
+}
+
+extern "C" void RunModelBatchDouble(double* data, int batch_size, int elements_per_sample) {
+    if (workflow) {
+        workflow->run_model_batch(data, batch_size, elements_per_sample);
+        flattened_output = workflow->getFlattenedOutput();
+        original_shape = workflow->getOriginalShape();
+    }
+}
+
+extern "C" int GetElementsPerSample() {
+    if (workflow) {
+        return workflow->getElementsPerSample();
+    }
+    return 0;
+}
