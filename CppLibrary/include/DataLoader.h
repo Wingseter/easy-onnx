@@ -17,6 +17,13 @@ public:
     Ort::Value load_data(T* data, int num_elements);
     Ort::Value float_load_data(float* data, int num_elements);
 
+    // Batch loading: loads multiple samples into a single tensor
+    template <typename T>
+    Ort::Value load_batch_data(T* data, int batch_size, int elements_per_sample);
+
+    // Get dimensions with custom batch size
+    std::vector<int64_t> getBatchDims(int batch_size) const;
+
 private:
     std::vector<int64_t> input_dims_;
     ONNXTensorElementDataType input_type_;

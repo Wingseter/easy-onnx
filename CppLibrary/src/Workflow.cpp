@@ -70,6 +70,27 @@ void Workflow::run_model(double* data, int num_elements) {
     run_inference(data, num_elements);
 }
 
+void Workflow::run_model_batch(int* data, int batch_size, int elements_per_sample) {
+    run_batch_inference(data, batch_size, elements_per_sample);
+}
+
+void Workflow::run_model_batch(float* data, int batch_size, int elements_per_sample) {
+    run_batch_inference(data, batch_size, elements_per_sample);
+}
+
+void Workflow::run_model_batch(double* data, int batch_size, int elements_per_sample) {
+    run_batch_inference(data, batch_size, elements_per_sample);
+}
+
+int Workflow::getElementsPerSample() const {
+    std::vector<int64_t> dims = model_->getInputDims();
+    int elements = 1;
+    for (size_t i = 1; i < dims.size(); ++i) {  // Skip batch dimension
+        elements *= static_cast<int>(dims[i]);
+    }
+    return elements;
+}
+
 void Workflow::run_test(const char* modelPath, bool cpu_use, float* data, int num_elements) {
     std::cout << "Hello This is ai Running Tester" << std::endl;
     std::vector<int64_t> dimensions = {1, 4, 128, 128, 80};
@@ -114,6 +135,12 @@ void Workflow::run_test(const char* modelPath, bool cpu_use, float* data, int nu
 template <typename T>
 void Workflow::run_inference(T* data, int num_elements) {
     Ort::Value input_tensor = data_loader_->load_data(data, num_elements);
+    model_->runInference(std::move(input_tensor));
+}
+
+template <typename T>
+void Workflow::run_batch_inference(T* data, int batch_size, int elements_per_sample) {
+    Ort::Value input_tensor = data_loader_->load_batch_data(data, batch_size, elements_per_sample);
     model_->runInference(std::move(input_tensor));
 }
 

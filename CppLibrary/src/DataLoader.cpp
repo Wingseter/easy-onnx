@@ -53,3 +53,41 @@ Ort::Value DataLoader::load_data(T* data, int num_elements) {
 template Ort::Value DataLoader::load_data<int>(int*, int);
 template Ort::Value DataLoader::load_data<float>(float*, int);
 template Ort::Value DataLoader::load_data<double>(double*, int);
+
+std::vector<int64_t> DataLoader::getBatchDims(int batch_size) const {
+    std::vector<int64_t> batch_dims = input_dims_;
+    if (!batch_dims.empty()) {
+        batch_dims[0] = batch_size;
+    }
+    return batch_dims;
+}
+
+template <typename T>
+Ort::Value DataLoader::load_batch_data(T* data, int batch_size, int elements_per_sample) {
+    Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
+
+    std::vector<int64_t> batch_dims = getBatchDims(batch_size);
+    int total_elements = batch_size * elements_per_sample;
+
+    switch (input_type_) {
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
+            return Ort::Value::CreateTensor<float>(memory_info, reinterpret_cast<float*>(data),
+                total_elements, batch_dims.data(), batch_dims.size());
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE:
+            return Ort::Value::CreateTensor<double>(memory_info, reinterpret_cast<double*>(data),
+                total_elements, batch_dims.data(), batch_dims.size());
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32:
+            return Ort::Value::CreateTensor<int32_t>(memory_info, reinterpret_cast<int32_t*>(data),
+                total_elements, batch_dims.data(), batch_dims.size());
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
+            return Ort::Value::CreateTensor<int64_t>(memory_info, reinterpret_cast<int64_t*>(data),
+                total_elements, batch_dims.data(), batch_dims.size());
+        default:
+            throw std::invalid_argument("Unsupported data type for batch loading");
+    }
+}
+
+// Batch Template Instantiation
+template Ort::Value DataLoader::load_batch_data<int>(int*, int, int);
+template Ort::Value DataLoader::load_batch_data<float>(float*, int, int);
+template Ort::Value DataLoader::load_batch_data<double>(double*, int, int);
