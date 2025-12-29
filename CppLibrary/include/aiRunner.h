@@ -71,3 +71,30 @@ extern "C" const int64_t* GetInstanceOriginalShape(int instance_id, int* size);
 extern "C" int GetInstanceElementsPerSample(int instance_id);
 extern "C" bool IsInstanceInitialized(int instance_id);
 extern "C" int GetModelInstanceCount();
+
+// ============================================
+// Logging API
+// ============================================
+
+// Log levels: 0=DEBUG, 1=INFO, 2=WARN, 3=ERROR, 4=NONE
+extern "C" void SetLogLevel(int level);
+extern "C" int GetLogLevel();
+
+// Console output control
+extern "C" void EnableLogConsole(bool enable);
+extern "C" void EnableLogTimestamp(bool enable);
+
+// File logging
+extern "C" bool SetLogFile(const char* filepath);
+extern "C" void CloseLogFile();
+
+// Custom callback for log messages
+typedef void (*LogCallbackC)(int level, const char* message, void* user_data);
+extern "C" void SetLogCallback(LogCallbackC callback, void* user_data);
+extern "C" void ClearLogCallback();
+
+// Manual logging
+extern "C" void LogDebug(const char* message);
+extern "C" void LogInfo(const char* message);
+extern "C" void LogWarn(const char* message);
+extern "C" void LogError(const char* message);

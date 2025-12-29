@@ -201,6 +201,57 @@ int main() {
     DestroyModelInstance(instance2);
     std::cout << "Remaining instance count: " << GetModelInstanceCount() << std::endl;
 
+    // ===== Logging System Test =====
+    std::cout << "\n--- Logging System Test ---" << std::endl;
+
+    // Test different log levels
+    std::cout << "\n1. Testing log levels (current: INFO)" << std::endl;
+    LogDebug("This DEBUG message should NOT appear (level too low)");
+    LogInfo("This INFO message should appear");
+    LogWarn("This WARN message should appear");
+    LogError("This ERROR message should appear");
+
+    // Change log level to DEBUG
+    std::cout << "\n2. Setting log level to DEBUG" << std::endl;
+    SetLogLevel(0);  // DEBUG
+    LogDebug("This DEBUG message should NOW appear");
+    LogInfo("INFO after level change");
+
+    // Test file logging
+    std::cout << "\n3. Testing file logging" << std::endl;
+    if (SetLogFile("airunner_test.log")) {
+        LogInfo("This message goes to both console and file");
+        LogWarn("Warning message in file");
+        LogError("Error message in file");
+        std::cout << "Log file created: airunner_test.log" << std::endl;
+    }
+
+    // Test disabling console
+    std::cout << "\n4. Testing console disable (next messages only in file)" << std::endl;
+    EnableLogConsole(false);
+    LogInfo("This message only goes to file, not console");
+    LogWarn("This warning only in file");
+    EnableLogConsole(true);
+    LogInfo("Console re-enabled - this appears on console");
+
+    // Test timestamp toggle
+    std::cout << "\n5. Testing timestamp disable" << std::endl;
+    EnableLogTimestamp(false);
+    LogInfo("Message without timestamp");
+    EnableLogTimestamp(true);
+    LogInfo("Message with timestamp restored");
+
+    // Test log level NONE (disable all)
+    std::cout << "\n6. Testing NONE level (all logging disabled)" << std::endl;
+    SetLogLevel(4);  // NONE
+    LogError("This ERROR should NOT appear (logging disabled)");
+    SetLogLevel(1);  // Back to INFO
+    LogInfo("Logging re-enabled");
+
+    // Close log file
+    CloseLogFile();
+    std::cout << "\nLog file closed. Check airunner_test.log for file output." << std::endl;
+
     std::cout << "\n===== Test Complete =====" << std::endl;
     return 0;
 }

@@ -30,6 +30,7 @@ add_library(aiRunner SHARED
     src/DataLoader.cpp
     src/Utils.cpp
     src/ModelManager.cpp
+    src/Logger.cpp
     Utils/pch.cpp
 )
 

@@ -6,6 +6,7 @@
 #include "../include/aiRunner.h"
 #include "../include/Workflow.h"
 #include "../include/ModelManager.h"
+#include "../include/Logger.h"
 #include <string.h>
 #include <future>
 #include <atomic>
@@ -278,4 +279,85 @@ extern "C" bool IsInstanceInitialized(int instance_id) {
 
 extern "C" int GetModelInstanceCount() {
     return ModelManager::getInstance().getInstanceCount();
+}
+
+// ============================================
+// Logging API Implementation
+// ============================================
+
+static LogCallbackC user_log_callback = nullptr;
+static void* user_log_data = nullptr;
+
+extern "C" void SetLogLevel(int level) {
+    if (level >= 0 && level <= 4) {
+        Logger::getInstance().setLogLevel(static_cast<LogLevel>(level));
+    }
+}
+
+extern "C" int GetLogLevel() {
+    return static_cast<int>(Logger::getInstance().getLogLevel());
+}
+
+extern "C" void EnableLogConsole(bool enable) {
+    Logger::getInstance().enableConsole(enable);
+}
+
+extern "C" void EnableLogTimestamp(bool enable) {
+    Logger::getInstance().enableTimestamp(enable);
+}
+
+extern "C" bool SetLogFile(const char* filepath) {
+    if (filepath) {
+        return Logger::getInstance().setLogFile(filepath);
+    }
+    return false;
+}
+
+extern "C" void CloseLogFile() {
+    Logger::getInstance().closeLogFile();
+}
+
+extern "C" void SetLogCallback(LogCallbackC callback, void* user_data) {
+    user_log_callback = callback;
+    user_log_data = user_data;
+
+    if (callback) {
+        Logger::getInstance().setCallback([](LogLevel level, const std::string& message) {
+            if (user_log_callback) {
+                user_log_callback(static_cast<int>(level), message.c_str(), user_log_data);
+            }
+        });
+    } else {
+        Logger::getInstance().clearCallback();
+    }
+}
+
+extern "C" void ClearLogCallback() {
+    user_log_callback = nullptr;
+    user_log_data = nullptr;
+    Logger::getInstance().clearCallback();
+}
+
+extern "C" void LogDebug(const char* message) {
+    if (message) {
+        Logger::getInstance().debug(message);
+    }
+}
+
+extern "C" void LogInfo(const char* message) {
+    if (message) {
+        Logger::getInstance().info(message);
+    }
+}
+
+extern "C" void LogWarn(const char* message) {
+    if (message) {
+        Logger::getInstance().warn(message);
+    }
+}
+
+extern "C" void LogError(const char* message) {
+    if (message) {
+        Logger::getInstance().error(message);
+    }
 }
