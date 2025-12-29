@@ -43,3 +43,58 @@ extern "C" const int64_t* GetOriginalShape(int* size);
 // Utility
 extern "C" int GetElementsPerSample();
 extern "C" bool allCheck(const char* modelPath, bool cpu_use, float* data, int num_elements);
+
+// ============================================
+// Multi-Model Management API
+// ============================================
+
+// Create/Destroy model instances
+extern "C" int CreateModelInstance();                    // Returns instance ID
+extern "C" bool DestroyModelInstance(int instance_id);
+
+// Initialize model for specific instance
+extern "C" bool InitModelInstance(int instance_id, const char* modelPath, bool cpu_use);
+
+// Run inference on specific instance
+extern "C" bool RunModelInstanceFloat(int instance_id, float* data, int num_elements);
+extern "C" bool RunModelInstanceInt(int instance_id, int* data, int num_elements);
+extern "C" bool RunModelInstanceDouble(int instance_id, double* data, int num_elements);
+
+// Run batch inference on specific instance
+extern "C" bool RunModelInstanceBatchFloat(int instance_id, float* data, int batch_size, int elements_per_sample);
+
+// Get output from specific instance
+extern "C" const float* GetInstanceFlattenedOutput(int instance_id, int* size);
+extern "C" const int64_t* GetInstanceOriginalShape(int instance_id, int* size);
+
+// Instance info
+extern "C" int GetInstanceElementsPerSample(int instance_id);
+extern "C" bool IsInstanceInitialized(int instance_id);
+extern "C" int GetModelInstanceCount();
+
+// ============================================
+// Logging API
+// ============================================
+
+// Log levels: 0=DEBUG, 1=INFO, 2=WARN, 3=ERROR, 4=NONE
+extern "C" void SetLogLevel(int level);
+extern "C" int GetLogLevel();
+
+// Console output control
+extern "C" void EnableLogConsole(bool enable);
+extern "C" void EnableLogTimestamp(bool enable);
+
+// File logging
+extern "C" bool SetLogFile(const char* filepath);
+extern "C" void CloseLogFile();
+
+// Custom callback for log messages
+typedef void (*LogCallbackC)(int level, const char* message, void* user_data);
+extern "C" void SetLogCallback(LogCallbackC callback, void* user_data);
+extern "C" void ClearLogCallback();
+
+// Manual logging
+extern "C" void LogDebug(const char* message);
+extern "C" void LogInfo(const char* message);
+extern "C" void LogWarn(const char* message);
+extern "C" void LogError(const char* message);
