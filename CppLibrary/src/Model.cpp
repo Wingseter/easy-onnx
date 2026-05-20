@@ -3,6 +3,7 @@
 //
 
 #include "../include/Model.h"
+#include "../include/ExecutionProviderConfig.h"
 #include "../Utils/pch.h"
 
 void Model::setSessionOption(bool cpu_use) {
@@ -13,15 +14,14 @@ void Model::setSessionOption(bool cpu_use) {
         num_threads = 2; // Fallback to 2 if hardware_concurrency returns 0 (which is implementation-defined)
     }
 
-    // Basically Use CPU
     if (cpu_use) {
-        std::cout << "what?" << std::endl;
-        // On other platforms, set session options for using CPU
         session_options.SetIntraOpNumThreads((int) num_threads / 2);
         session_options.SetExecutionMode(ExecutionMode::ORT_PARALLEL);
     } else {
-        // Set options for using GPU or other accelerators
         session_options.SetExecutionMode(ExecutionMode::ORT_PARALLEL);
+        // Append platform-specific accelerator (CoreML on macOS, DirectML on Windows).
+        // On failure the EP is simply not appended; ORT will run on CPU.
+        TryAppendAcceleratedEP(session_options);
     }
 }
 

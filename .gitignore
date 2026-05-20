@@ -1,5 +1,18 @@
 # 빌드 디렉토리 무시
 /build/
+/build-release/
+/stage/
+
+# Release zip 산출물
+easyonnx-*-v*.zip
+
+# CMake post-build로 채워지는 산출물 (소스 아님)
+/Library/aiRunner/mac/lib/lib*.dylib*
+/Library/aiRunner/mac/include/
+/Library/aiRunner/windows/lib/*.dll
+/Library/aiRunner/windows/include/
+/Library/aiRunner/linux/lib/lib*.so*
+/Library/aiRunner/linux/include/
 
 # Xcode 관련 파일 무시
 *.xcworkspace
@@ -58,3 +71,4 @@ UnityApplication/Assets/Plugins/
 SampleModel/
 
 .claude
+.antigravitycli

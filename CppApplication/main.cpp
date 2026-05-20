@@ -1,12 +1,29 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <string>
+#include <vector>
 #include "aiRunner.h"
 
-int main() {
+int main(int argc, char** argv) {
     std::cout << "===== AI Runner Test =====" << std::endl;
+
+    if (argc < 2) {
+        std::cerr << "Usage: " << (argc > 0 ? argv[0] : "CppApplication")
+                  << " <path/to/model.onnx> [--gpu]" << std::endl;
+        std::cerr << "  --gpu : use platform accelerator (CoreML on macOS, DirectML on Windows)" << std::endl;
+        return 1;
+    }
+
+    const char* modelPath = argv[1];
     bool cpu_use = true;
-    const char* modelPath = "/Users/kwon/Workspace/C/ai-run-library/SampleModel/best_metric_model_0.7747.onnx";
+    for (int i = 2; i < argc; ++i) {
+        if (std::string(argv[i]) == "--gpu") {
+            cpu_use = false;
+        }
+    }
+    std::cout << "Model: " << modelPath << std::endl;
+    std::cout << "Mode: " << (cpu_use ? "CPU" : "GPU/accelerator (EP fallback if unavailable)") << std::endl;
 
     // Model initialization
     if (!InitModel(modelPath, cpu_use)) {

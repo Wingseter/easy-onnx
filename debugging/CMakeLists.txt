@@ -4,8 +4,8 @@ project(debugging)
 set(CMAKE_CXX_STANDARD 11)
 
 # Include directories for ONNX Runtime
-include_directories(${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/mac/include)
-link_directories(${CMAKE_SOURCE_DIR}/../Library/OnnxRuntime/mac/lib)
+include_directories(${CMAKE_SOURCE_DIR}/../Library/ONNXRuntime/mac/include)
+link_directories(${CMAKE_SOURCE_DIR}/../Library/ONNXRuntime/mac/lib)
 
 # Add executable
 add_executable(debugging main.cpp)

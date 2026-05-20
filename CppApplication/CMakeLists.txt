@@ -25,6 +25,20 @@ endif()
 # Add executable
 add_executable(CppApplication main.cpp)
 
+# rpath: find dylibs next to the executable
+if(APPLE)
+    set_target_properties(CppApplication PROPERTIES
+        MACOSX_RPATH ON
+        BUILD_RPATH "@executable_path"
+        INSTALL_RPATH "@executable_path"
+    )
+elseif(UNIX)
+    set_target_properties(CppApplication PROPERTIES
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN"
+    )
+endif()
+
 # Include directories (target-specific)
 target_include_directories(CppApplication
     PRIVATE
@@ -42,3 +56,29 @@ endif()
 
 target_link_directories(CppApplication PRIVATE ${ONNXRUNTIME_LIB_DIR})
 target_link_libraries(CppApplication PRIVATE onnxruntime)
+
+# Place aiRunner + onnxruntime shared libs next to the executable so rpath resolves.
+if(APPLE)
+    add_custom_command(TARGET CppApplication POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:aiRunner>
+            $<TARGET_FILE_DIR:CppApplication>/$<TARGET_FILE_NAME:aiRunner>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${ONNXRUNTIME_LIB_DIR}/libonnxruntime.1.18.1.dylib
+            $<TARGET_FILE_DIR:CppApplication>/libonnxruntime.1.18.1.dylib
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            libonnxruntime.1.18.1.dylib
+            $<TARGET_FILE_DIR:CppApplication>/libonnxruntime.dylib
+        COMMENT "Staging dylibs next to CppApplication"
+    )
+elseif(WIN32)
+    add_custom_command(TARGET CppApplication POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:aiRunner>
+            $<TARGET_FILE_DIR:CppApplication>/$<TARGET_FILE_NAME:aiRunner>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${ONNXRUNTIME_LIB_DIR}/onnxruntime.dll
+            $<TARGET_FILE_DIR:CppApplication>/onnxruntime.dll
+        COMMENT "Staging DLLs next to CppApplication"
+    )
+endif()
