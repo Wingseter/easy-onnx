@@ -19,8 +19,11 @@ void Model::setSessionOption(bool cpu_use) {
         session_options.SetExecutionMode(ExecutionMode::ORT_PARALLEL);
     } else {
         session_options.SetExecutionMode(ExecutionMode::ORT_PARALLEL);
-        // Append platform-specific accelerator (CoreML on macOS, DirectML on Windows).
-        // On failure the EP is simply not appended; ORT will run on CPU.
+        // ORT 1.26 requires the default logger (owned by Ort::Env) to be live
+        // before any EP factory is invoked, so create the env up-front here.
+        if (!env) {
+            env = std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "airunner");
+        }
         TryAppendAcceleratedEP(session_options);
     }
 }
@@ -28,9 +31,9 @@ void Model::setSessionOption(bool cpu_use) {
 
 void Model::setModel(const char * modelPath) {
     initialized = true;
-    // ONNX Runtime environment
-    auto envLocal = std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "airunner");
-    env = std::move(envLocal);
+    if (!env) {
+        env = std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "airunner");
+    }
     auto sessionLocal = std::make_unique<Ort::Session>(*env, modelPath, session_options);
     session = std::move(sessionLocal);
 }

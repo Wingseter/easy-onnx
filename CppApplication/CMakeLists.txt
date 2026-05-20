@@ -59,15 +59,19 @@ target_link_libraries(CppApplication PRIVATE onnxruntime)
 
 # Place aiRunner + onnxruntime shared libs next to the executable so rpath resolves.
 if(APPLE)
+    # ORT 1.26.0 dylib install_name is @rpath/libonnxruntime.1.dylib.
     add_custom_command(TARGET CppApplication POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_FILE:aiRunner>
             $<TARGET_FILE_DIR:CppApplication>/$<TARGET_FILE_NAME:aiRunner>
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${ONNXRUNTIME_LIB_DIR}/libonnxruntime.1.18.1.dylib
-            $<TARGET_FILE_DIR:CppApplication>/libonnxruntime.1.18.1.dylib
+            ${ONNXRUNTIME_LIB_DIR}/libonnxruntime.1.26.0.dylib
+            $<TARGET_FILE_DIR:CppApplication>/libonnxruntime.1.26.0.dylib
         COMMAND ${CMAKE_COMMAND} -E create_symlink
-            libonnxruntime.1.18.1.dylib
+            libonnxruntime.1.26.0.dylib
+            $<TARGET_FILE_DIR:CppApplication>/libonnxruntime.1.dylib
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            libonnxruntime.1.26.0.dylib
             $<TARGET_FILE_DIR:CppApplication>/libonnxruntime.dylib
         COMMENT "Staging dylibs next to CppApplication"
     )

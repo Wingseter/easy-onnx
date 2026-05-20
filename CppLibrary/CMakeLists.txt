@@ -87,18 +87,26 @@ add_custom_command(TARGET aiRunner POST_BUILD
 # Copy the ONNXRuntime shared library next to the produced aiRunner library so
 # rpath @loader_path can resolve it at runtime.
 if(APPLE)
+    # ORT 1.26.0 dylib install_name is @rpath/libonnxruntime.1.dylib, so the
+    # `.1.dylib` symlink must be staged alongside the versioned binary.
     add_custom_command(TARGET aiRunner POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-            ${ONNXRUNTIME_LIB_DIR}/libonnxruntime.1.18.1.dylib
-            $<TARGET_FILE_DIR:aiRunner>/libonnxruntime.1.18.1.dylib
+            ${ONNXRUNTIME_LIB_DIR}/libonnxruntime.1.26.0.dylib
+            $<TARGET_FILE_DIR:aiRunner>/libonnxruntime.1.26.0.dylib
         COMMAND ${CMAKE_COMMAND} -E create_symlink
-            libonnxruntime.1.18.1.dylib
+            libonnxruntime.1.26.0.dylib
+            $<TARGET_FILE_DIR:aiRunner>/libonnxruntime.1.dylib
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            libonnxruntime.1.26.0.dylib
             $<TARGET_FILE_DIR:aiRunner>/libonnxruntime.dylib
         COMMAND ${CMAKE_COMMAND} -E copy
-            ${ONNXRUNTIME_LIB_DIR}/libonnxruntime.1.18.1.dylib
-            ${AIRUNNER_OUTPUT_DIR}/lib/libonnxruntime.1.18.1.dylib
+            ${ONNXRUNTIME_LIB_DIR}/libonnxruntime.1.26.0.dylib
+            ${AIRUNNER_OUTPUT_DIR}/lib/libonnxruntime.1.26.0.dylib
         COMMAND ${CMAKE_COMMAND} -E create_symlink
-            libonnxruntime.1.18.1.dylib
+            libonnxruntime.1.26.0.dylib
+            ${AIRUNNER_OUTPUT_DIR}/lib/libonnxruntime.1.dylib
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            libonnxruntime.1.26.0.dylib
             ${AIRUNNER_OUTPUT_DIR}/lib/libonnxruntime.dylib
         COMMENT "Copying ONNXRuntime dylib next to aiRunner"
     )
@@ -127,13 +135,17 @@ install(DIRECTORY include/ DESTINATION include)
 
 if(APPLE)
     install(FILES
-        ${ONNXRUNTIME_LIB_DIR}/libonnxruntime.1.18.1.dylib
+        ${ONNXRUNTIME_LIB_DIR}/libonnxruntime.1.26.0.dylib
         DESTINATION lib
     )
-    # Recreate the unversioned symlink at install time.
+    # Recreate the major-version and unversioned symlinks at install time.
+    # ORT 1.26.0's install_name is @rpath/libonnxruntime.1.dylib, so .1.dylib is required.
     install(CODE "
         execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
-            libonnxruntime.1.18.1.dylib
+            libonnxruntime.1.26.0.dylib
+            \${CMAKE_INSTALL_PREFIX}/lib/libonnxruntime.1.dylib)
+        execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+            libonnxruntime.1.26.0.dylib
             \${CMAKE_INSTALL_PREFIX}/lib/libonnxruntime.dylib)
     ")
 elseif(WIN32)
