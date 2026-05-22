@@ -15,6 +15,17 @@ runtime that can P/Invoke a shared library.
 accelerator is unavailable or the model is incompatible, the library logs a
 warning and silently falls back to CPU — calls never throw across the C ABI.
 
+## Compatibility
+
+> **v0.2.0 is a breaking release.** The global single-model API (`InitModel`,
+> `RunModelFloat`, `GetFlattenedOutput`, …) was **removed**. The public C ABI is
+> now a single handle-based surface: every call takes an `instance_id` from
+> `CreateModelInstance()`. See
+> [docs/migration-v0.2.0.md](docs/migration-v0.2.0.md) for the full old→new
+> function mapping.
+
+This release also bundles ONNX Runtime **1.26.0** (was 1.18.1 in v0.1.x).
+
 ## Quick start (consume a release zip)
 
 1. Download a release zip from the Releases page.
@@ -34,15 +45,37 @@ warning and silently falls back to CPU — calls never throw across the C ABI.
 
 ## Public API (highlights)
 
-```cpp
-extern "C" bool  InitModel(const char* modelPath, bool cpu_use);
-extern "C" void  RunModelFloat(float* data, int num_elements);
-extern "C" const float* GetFlattenedOutput(int* size);
-extern "C" const int64_t* GetOriginalShape(int* size);
-extern "C" int   GetElementsPerSample();
+Every model lives behind an `int` handle. Create it, load a model, run, read,
+destroy:
 
-// Async, batch, multi-instance, and logging APIs also exist —
-// see include/aiRunner.h in the release zip for the full surface.
+```cpp
+extern "C" int  CreateModelInstance();
+extern "C" bool InitModelInstance(int instance_id, const char* modelPath, bool cpu_use);
+extern "C" bool RunModelInstanceFloat(int instance_id, float* data, int num_elements);
+extern "C" const float* GetInstanceFlattenedOutput(int instance_id, int* size);
+extern "C" int  GetInstanceElementsPerSample(int instance_id);
+extern "C" bool DestroyModelInstance(int instance_id);
+
+// Batch, async (future + callback), int/double variants, and a process-global
+// logging API also exist — see include/aiRunner.h in the release zip for the
+// full surface.
+```
+
+```cpp
+#include "aiRunner.h"
+
+int h = CreateModelInstance();
+InitModelInstance(h, "model.onnx", /*cpu_use=*/false);
+
+int n = GetInstanceElementsPerSample(h);
+std::vector<float> input(n, 0.0f);
+RunModelInstanceFloat(h, input.data(), n);
+
+int out_size = 0;
+const float* out = GetInstanceFlattenedOutput(h, &out_size);
+// ... use out[0..out_size)
+
+DestroyModelInstance(h);
 ```
 
 ## Build from source
@@ -67,13 +100,13 @@ Outputs:
 On a mac (Apple Silicon):
 ```sh
 ./scripts/build_release.sh
-# → easyonnx-mac-arm64-v0.1.0.zip
+# → easyonnx-mac-arm64-v0.2.0.zip
 ```
 
 On Windows:
 ```powershell
 .\scripts\build_release.ps1
-# → easyonnx-windows-x64-v0.1.0.zip
+# → easyonnx-windows-x64-v0.2.0.zip
 ```
 
 Each script does a clean Release build, runs `cmake --install` into a staging
@@ -87,7 +120,7 @@ easy-onnx/
 ├── CppLibrary/          # The aiRunner shared library (source of the public ABI)
 ├── CppApplication/      # CLI smoke-test app
 ├── Library/
-│   ├── ONNXRuntime/     # Vendored ORT 1.18.1 (mac arm64, windows x64)
+│   ├── ONNXRuntime/     # Vendored ORT 1.26.0 (mac arm64, windows x64)
 │   └── aiRunner/        # Build output staging
 ├── docs/                # Integration guides
 ├── scripts/             # build_release.{sh,ps1}

@@ -5,15 +5,16 @@ C++ project.
 
 ## 1. Get the binaries
 
-Download a release zip (e.g. `easyonnx-mac-arm64-v0.1.0.zip`) and extract it.
+Download a release zip (e.g. `easyonnx-mac-arm64-v0.2.0.zip`) and extract it.
 The layout is:
 
 ```
 easyonnx-mac-arm64/
 ├── lib/
 │   ├── libaiRunner.dylib
-│   ├── libonnxruntime.1.18.1.dylib
-│   └── libonnxruntime.dylib -> libonnxruntime.1.18.1.dylib
+│   ├── libonnxruntime.1.26.0.dylib
+│   ├── libonnxruntime.1.dylib  -> libonnxruntime.1.26.0.dylib
+│   └── libonnxruntime.dylib    -> libonnxruntime.1.26.0.dylib
 ├── include/
 │   ├── aiRunner.h
 │   ├── Workflow.h
@@ -22,8 +23,12 @@ easyonnx-mac-arm64/
 └── README.md
 ```
 
-Windows: `easyonnx-windows-x64-v0.1.0.zip` contains `lib/aiRunner.dll`,
+Windows: `easyonnx-windows-x64-v0.2.0.zip` contains `lib/aiRunner.dll`,
 `lib/onnxruntime.dll` and the same headers.
+
+> **v0.2.0 is a breaking release** — the global single-model API was removed in
+> favor of the handle-based API shown below. If you are upgrading from v0.1.x,
+> see [migration-v0.2.0.md](migration-v0.2.0.md).
 
 ## 2. macOS: Gatekeeper quarantine
 
@@ -35,7 +40,7 @@ xattr -dr com.apple.quarantine /path/to/easyonnx-mac-arm64
 ```
 
 Long-term: code signing and notarization is on the roadmap but out of scope
-for v0.1.x.
+for v0.2.x.
 
 ## 3. CMake consumer example
 
@@ -63,24 +68,38 @@ endif()
 
 ## 4. Minimal call site
 
+Every model is addressed by an `int` handle from `CreateModelInstance()`. Each
+call takes the handle first; action calls return `bool` (`true` = success).
+
 ```cpp
+#include <vector>
 #include "aiRunner.h"
 
 int main() {
+    int h = CreateModelInstance();
+
     // cpu_use=false enables the platform accelerator
     // (CoreML on macOS, DirectML on Windows). If the model is not
     // accelerator-compatible, the library logs a warning and uses CPU.
-    if (!InitModel("model.onnx", /*cpu_use=*/false)) return 1;
+    if (!InitModelInstance(h, "model.onnx", /*cpu_use=*/false)) return 1;
 
-    int n = GetElementsPerSample();
+    int n = GetInstanceElementsPerSample(h);
     std::vector<float> input(n, 0.0f);
-    RunModelFloat(input.data(), n);
+    RunModelInstanceFloat(h, input.data(), n);
 
     int out_size = 0;
-    const float* out = GetFlattenedOutput(&out_size);
-    // ... use out[0..out_size)
+    const float* out = GetInstanceFlattenedOutput(h, &out_size);
+    // ... use out[0..out_size) — valid until the next run on h or DestroyModelInstance(h)
+
+    DestroyModelInstance(h);
 }
 ```
+
+Need more than one model loaded at once? Just create more handles — each is
+independent. Async inference (`RunModelInstanceFloatAsync`,
+`IsInstanceInferenceRunning`, `WaitForInstanceInference`,
+`GetInstanceAsyncResult`) and batch inference (`RunModelInstanceBatch*`) follow
+the same handle-first pattern; see `include/aiRunner.h` for the full surface.
 
 ## 5. Execution provider behavior
 
@@ -96,6 +115,6 @@ the library logs an error and continues with CPU — calls do **not** raise.
 
 The release zip does **not** ship `DirectML.dll`. Windows 10 1903+ provides a
 system copy at `%SystemRoot%\System32\DirectML.dll`, which is usually sufficient
-for onnxruntime 1.18.1. If you hit a version mismatch at runtime, install the
+for onnxruntime 1.26.0. If you hit a version mismatch at runtime, install the
 [DirectML redistributable](https://learn.microsoft.com/windows/ai/directml/dml-version-history)
 or drop a matching `DirectML.dll` next to your executable.

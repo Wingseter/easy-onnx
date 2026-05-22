@@ -216,22 +216,78 @@
 - `CppLibrary/include/{Workflow,Model,ModelManager}.h`, `CppLibrary/src/{Workflow,Model,ModelManager}.cpp` (메서드 네이밍 정렬)
 - `CppApplication/main.cpp` (새 API로 재작성)
 
-### Step 4 — 문서·패키징·버전 bump
+### Step 4 — 문서·패키징·버전 bump ✅ 완료 (2026-05-22)
 
-작업:
-1. **버전 bump**: `CMakeLists.txt:2` `VERSION 0.1.0` → `0.2.0`. `README.md`에 호환성 경고 섹션 추가.
-2. **README 갱신**: ORT 버전 1.26.0(macOS) + Windows 가속 EP 상태(미정/CPU only) 명시, 새 API 예시로 교체, 마이그레이션 표(`InitModel` → `CreateModelInstance + InitModelInstance` 등) 추가.
-3. **`docs/cpp-integration.md`**: 코드 예제를 새 API로 교체(현 라인 64–82). 핸들 라이프사이클 설명 추가.
-4. **`docs/unity-integration.md`**: P/Invoke 시그니처 전부 신 API로 교체(현 라인 46–60).
-5. **release zip 검증**: `scripts/build_release.sh` / `scripts/build_release.ps1` 실행 → `easyonnx-mac-arm64-v0.2.0.zip`, `easyonnx-windows-x64-v0.2.0.zip` 생성 확인. 내부 `include/aiRunner.h`가 새 시그니처인지 확인.
-6. **마이그레이션 가이드**: `docs/migration-v0.2.0.md` 신규 — 표 형식으로 구버전 호출 → 신버전 호출 1:1 매핑. (예: `InitModel("m.onnx", false)` → `int h = CreateModelInstance(); InitModelInstance(h, "m.onnx", false);`)
+**의도**: v0.2.0 breaking 릴리스를 사용자 문서·패키징에 반영.
 
-**완료 기준**: README/docs 모두 새 API와 ORT 1.26.0(macOS) 반영, release zip 두 개 생성(Windows zip은 DML 결정 후), 마이그레이션 가이드 PR.
+#### 적용된 변경
+
+**1. 버전 bump**
+- `CMakeLists.txt` `project(easy-onnx VERSION 0.1.0)` → `0.2.0`. `EASYONNX_VERSION`
+  및 release 스크립트(version을 CMakeLists에서 grep)가 자동으로 `v0.2.0` 채택.
+
+**2. `README.md` 갱신**
+- 신규 **Compatibility** 섹션: v0.2.0 breaking 경고 + 마이그레이션 가이드 링크 +
+  ORT 1.18.1→1.26.0 번들 변경 명시.
+- **Public API (highlights)**: 전역 API 예시를 핸들 기반(`CreateModelInstance` →
+  `InitModelInstance` → `RunModelInstanceFloat` → `GetInstanceFlattenedOutput` →
+  `DestroyModelInstance`)으로 교체 + 완결된 호출 예제 추가.
+- release zip 이름 `v0.1.0`→`v0.2.0`, repo layout의 `Vendored ORT 1.18.1`→`1.26.0`.
+
+**3. `docs/cpp-integration.md` 갱신**
+- 릴리스 zip 레이아웃: `libonnxruntime.1.18.1.dylib` → `1.26.0` + `.1.dylib`
+  심링크 추가 반영. zip 이름 `v0.2.0`.
+- §4 Minimal call site를 핸들 기반으로 재작성(핸들 수명·출력 포인터 유효 기간 설명).
+- breaking 경고 + 마이그레이션 링크, `v0.1.x`→`v0.2.x`, DirectML 노트 ORT 버전 갱신.
+
+**4. `docs/unity-integration.md` 갱신**
+- macOS 플러그인 배치: `.1.26.0.dylib` + `.1.dylib` 심링크(로더가
+  `@rpath/libonnxruntime.1.dylib`로 해소하므로 필수) 설명 추가.
+- C# `[DllImport]` 바인딩을 핸들 기반으로 전면 교체, MonoBehaviour 예제 재작성
+  (`Awake`에서 핸들 생성 / `OnDestroy`에서 파괴 권장 추가).
+- §5를 async/batch/multi-model 핸들 패턴으로 갱신, `v0.1.x`→`v0.2.x`.
+
+**5. `docs/migration-v0.2.0.md` 신규 작성**
+- 핸들·수명 개념 전환 설명 + 전역 API → 핸들 API 1:1 매핑 표(20행) +
+  unchanged 함수 목록 + 동작 변경점(반환형 void→bool, async 동시 실행 거부) +
+  before/after 예제 + C#/Unity 안내.
+
+**6. release zip 검증**
+- `./scripts/build_release.sh` 실행 → `easyonnx-mac-arm64-v0.2.0.zip` (9.8M) 생성.
+- zip 내부 검증: `include/aiRunner.h`가 핸들 기반 시그니처(legacy 심볼 0건),
+  `lib/`에 `libaiRunner.dylib` + `libonnxruntime.1.26.0.dylib` + `.1.dylib`/
+  `.dylib` 심링크 2개 포함.
+- Windows zip(`build_release.ps1`)은 macOS 호스트에서 실행 불가 — 스크립트가
+  버전을 CMakeLists에서 동일 방식으로 grep하므로 `easyonnx-windows-x64-v0.2.0.zip`을
+  산출함이 자명. Windows 호스트에서의 실제 실행은 별도 트랙(DirectML EP 결정과 함께).
+
+#### 완료 기준
+- ✅ `CMakeLists.txt` VERSION 0.2.0.
+- ✅ README/cpp-integration/unity-integration 모두 핸들 기반 API + ORT 1.26.0 반영.
+- ✅ `docs/migration-v0.2.0.md` 작성.
+- ✅ macOS release zip 생성 및 내부 헤더 검증.
+- ⏭️ Windows release zip 실제 산출은 Windows 호스트 필요(스코프상 deferred).
 
 수정/추가 파일:
 - `CMakeLists.txt`, `README.md`
 - `docs/cpp-integration.md`, `docs/unity-integration.md`
 - `docs/migration-v0.2.0.md` (신규)
+
+---
+
+## 전체 리팩토링 완료 (Step 1–4)
+
+- **Step 1**: ORT 1.18.1 → 1.26.0 (macOS arm64), 빌드 그린.
+- **Step 2**: 내부 부채 정리 — 전역 정적 제거, 로깅 일원화, immortal singleton.
+- **Step 3**: 공개 C ABI를 핸들 기반 단일 형태로 재설계 (Breaking, v0.2.0).
+- **Step 4**: 문서·패키징·버전 bump.
+
+**잔여/후속 작업** (별도 트랙):
+- Windows DirectML EP 전략 결정 + Windows release zip 실제 산출.
+- EP 선택 enum(`InitModelInstanceWithEP` + `EasyOnnxEP`) — Step 3에서 deferred.
+- 동적 배치 ONNX fixture 추가 (현재 MNIST는 batch=1 고정).
+- ThreadSanitizer로 async 경로 검증.
+- `IsInstanceInitialized`가 "모델 로드 여부"가 아닌 "인스턴스 존재 여부"만 검사하는 점 개선.
 
 ---
 
