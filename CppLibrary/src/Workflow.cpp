@@ -7,19 +7,21 @@
 #include "../include/Model.h"
 #include "../include/DataLoader.h"
 #include "../include/Utils.h"
+#include "../include/Logger.h"
 #include <thread>
+#include <sstream>
 
 void Workflow::init_model(const char* modelPath, bool cpu_use) {
-    std::cout << "Initializing model..." << std::endl;
+    Logger::getInstance().info("Initializing model...");
 
     // if new model is same as previous one pass model Initialize
     if (std::strcmp(previous.c_str(), modelPath) == 0){
-        std::cout << "model already initialized pass initializing" << std::endl;
+        Logger::getInstance().info("Model already initialized; skipping re-init.");
         return;
     }
 
     previous = string(modelPath);
-//
+
     if(model_ == nullptr)
         model_ = std::make_shared<Model>();
     if(data_loader_ != nullptr)
@@ -30,33 +32,27 @@ void Workflow::init_model(const char* modelPath, bool cpu_use) {
 
     model_->setSessionOption(cpu_use);
     model_->setModel(modelPath);
-    std::cout << "Model loaded from path: " << modelPath << std::endl;
+    Logger::getInstance().info(std::string("Model loaded from path: ") + modelPath);
 
     model_->setModelInOutput();
     model_->setModelInOutputTypeDim();
 
     std::vector<int64_t> input_dims = model_->getInputDims();
     ONNXTensorElementDataType input_type = model_->getInputType();
-    std::cout << "Model input dimensions and type retrieved." << std::endl;
 
-    // input_dims 출력
-    std::cout << "Input dimensions: [";
-    for (size_t i = 0; i < input_dims.size(); ++i) {
-        std::cout << input_dims[i];
-        if (i < input_dims.size() - 1) {
-            std::cout << ", ";
+    {
+        std::ostringstream oss;
+        oss << "Input dimensions: [";
+        for (size_t i = 0; i < input_dims.size(); ++i) {
+            if (i) oss << ", ";
+            oss << input_dims[i];
         }
+        oss << "] type=" << Utils::onnxTypeToString(input_type);
+        Logger::getInstance().info(oss.str());
     }
-    std::cout << "]" << std::endl;
-
-    // input_type 출력
-    std::cout << "Input type: " << Utils::onnxTypeToString(input_type) << std::endl;
 
     data_loader_ = std::make_shared<DataLoader>(model_->getInputDims(), model_->getInputType());
-    std::cout << "Data loader initialized with input dimensions and type." << std::endl;
-
-
-    std::cout << "Model initialization complete." << std::endl;
+    Logger::getInstance().info("Model initialization complete.");
 }
 
 void Workflow::run_model(int* data, int num_elements) {
@@ -93,7 +89,8 @@ int Workflow::getElementsPerSample() const {
 }
 
 void Workflow::run_test(const char* modelPath, bool cpu_use, float* data, int num_elements) {
-    std::cout << "Hello This is ai Running Tester" << std::endl;
+    Logger::getInstance().info("run_test: dev path");
+    (void)cpu_use;
     std::vector<int64_t> dimensions = {1, 4, 128, 128, 80};
 
     // Initialize ONNX Runtime
@@ -111,8 +108,8 @@ void Workflow::run_test(const char* modelPath, bool cpu_use, float* data, int nu
     auto input_name = session.GetInputNameAllocated(0, allocator);
     auto output_name = session.GetOutputNameAllocated(0, allocator);
 
-    std::cout << "Input Name: " << input_name.get() << std::endl;
-    std::cout << "Output Name: " << output_name.get() << std::endl;
+    Logger::getInstance().info(std::string("run_test input='") + input_name.get() +
+                               "' output='" + output_name.get() + "'");
 
     // Create input tensor
     Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
@@ -126,11 +123,10 @@ void Workflow::run_test(const char* modelPath, bool cpu_use, float* data, int nu
 
     // Get output tensor
     Ort::Value& output_tensor = output_tensors.front();
-    float* output_data = output_tensor.GetTensorMutableData<float>();
+    (void)output_tensor.GetTensorMutableData<float>();
     size_t output_size = output_tensor.GetTensorTypeAndShapeInfo().GetElementCount();
 
-    std::cout << "Output tensor size: " << output_size << std::endl;
-
+    Logger::getInstance().info(std::string("run_test output size=") + std::to_string(output_size));
 }
 
 template <typename T>
@@ -165,7 +161,7 @@ std::future<bool> Workflow::run_model_async(T* data, int num_elements) {
             is_running_.store(false);
             return true;
         } catch (const std::exception& e) {
-            std::cerr << "Async inference error: " << e.what() << std::endl;
+            Logger::getInstance().error(std::string("Async inference error: ") + e.what());
             is_running_.store(false);
             return false;
         }
@@ -183,7 +179,7 @@ std::future<bool> Workflow::run_model_batch_async(T* data, int batch_size, int e
             is_running_.store(false);
             return true;
         } catch (const std::exception& e) {
-            std::cerr << "Async batch inference error: " << e.what() << std::endl;
+            Logger::getInstance().error(std::string("Async batch inference error: ") + e.what());
             is_running_.store(false);
             return false;
         }
@@ -203,7 +199,7 @@ void Workflow::run_model_async_callback(T* data, int num_elements, InferenceCall
                 callback(true, model_->getFlattenedOutput());
             }
         } catch (const std::exception& e) {
-            std::cerr << "Async inference error: " << e.what() << std::endl;
+            Logger::getInstance().error(std::string("Async inference error: ") + e.what());
             is_running_.store(false);
             if (callback) {
                 callback(false, {});

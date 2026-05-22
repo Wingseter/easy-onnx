@@ -24,6 +24,11 @@ enum class LogLevel {
 // Callback type for custom log handling
 using LogCallback = std::function<void(LogLevel level, const std::string& message)>;
 
+// Raw C callback (level as int, message as C string, opaque user data).
+// Declared here so the public C ABI bridge can register without aiRunner.cpp
+// owning any file-scope state.
+using CLogCallback = void(*)(int level, const char* message, void* user_data);
+
 class Logger {
 public:
     static Logger& getInstance();
@@ -39,9 +44,13 @@ public:
     bool setLogFile(const std::string& filepath);
     void closeLogFile();
 
-    // Custom callback
+    // Custom callback (C++ std::function)
     void setCallback(LogCallback callback);
     void clearCallback();
+
+    // Custom callback (raw C function pointer + opaque user data)
+    void setCCallback(CLogCallback callback, void* user_data);
+    void clearCCallback();
 
     // Logging methods
     void log(LogLevel level, const std::string& message);
@@ -87,6 +96,11 @@ private:
     std::string file_path_;
 
     LogCallback callback_ = nullptr;
+
+    // C ABI callback bridge — owned here so the public C wrapper has no
+    // file-scope statics for log routing.
+    CLogCallback c_callback_ = nullptr;
+    void* c_callback_user_data_ = nullptr;
 
     mutable std::mutex mutex_;
 };

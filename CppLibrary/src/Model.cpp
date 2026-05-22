@@ -4,7 +4,10 @@
 
 #include "../include/Model.h"
 #include "../include/ExecutionProviderConfig.h"
+#include "../include/Logger.h"
 #include "../Utils/pch.h"
+
+#include <sstream>
 
 void Model::setSessionOption(bool cpu_use) {
     session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
@@ -48,8 +51,8 @@ void Model::setModelInOutput() {
     input_name = std::string(input_name_allocated.get());
     output_name = std::string(output_name_allocated.get());
 
-    std::cout << "Input Name: " << input_name << std::endl;
-    std::cout << "Output Name: " << output_name << std::endl;
+    Logger::getInstance().info(std::string("Input Name: ") + input_name);
+    Logger::getInstance().info(std::string("Output Name: ") + output_name);
 }
 
 
@@ -72,57 +75,54 @@ void Model::setModelInOutputTypeDim() {
 }
 
 bool Model::runInference(Ort::Value input_tensor) {
-    // Check if the session is valid
     if (!session) {
-        std::cerr << "Session is not initialized!" << std::endl;
+        Logger::getInstance().error("Session is not initialized!");
         return false;
     }
-    // Prepare input and output names as const char* arrays
+
     const char* input_names[] = { input_name.c_str() };
     const char* output_names[] = { output_name.c_str() };
-    std::cout << "Input name: " << input_name << std::endl;
-    std::cout << "Output name: " << output_name << std::endl;
 
-    // Validate input tensor
-    std::cout << "Validating input tensor..." << std::endl;
     auto input_tensor_info = input_tensor.GetTensorTypeAndShapeInfo();
     auto input_shape = input_tensor_info.GetShape();
-    std::cout << "Input tensor shape: ";
-    for (const auto& dim : input_shape) {
-        std::cout << dim << " ";
-    }
-    std::cout  << std::endl;
 
-    std::cout << "Running inference..." << std::endl;
+    if (Logger::getInstance().getLogLevel() <= LogLevel::DEBUG) {
+        std::ostringstream oss;
+        oss << "Inference: in='" << input_name << "' out='" << output_name << "' shape=[";
+        for (size_t i = 0; i < input_shape.size(); ++i) {
+            if (i) oss << ",";
+            oss << input_shape[i];
+        }
+        oss << "]";
+        Logger::getInstance().debug(oss.str());
+    }
 
     auto output_tensors = session->Run(Ort::RunOptions{nullptr},
                                   input_names, &input_tensor, 1,
                                   output_names, 1);
 
-    // Check if we have any output tensors
     if (output_tensors.empty()) {
-        std::cout << "Inference failed: no output tensors" << std::endl;
+        Logger::getInstance().error("Inference failed: no output tensors");
         return false;
     }
-
-    std::cout << "Output tensors received." << std::endl;
 
     Ort::Value& output_tensor = output_tensors.front();
     auto output_data = output_tensor.GetTensorMutableData<float>();
     original_shape = output_tensor.GetTensorTypeAndShapeInfo().GetShape();
     size_t output_size = output_tensor.GetTensorTypeAndShapeInfo().GetElementCount();
 
-    std::cout << "Output tensor shape: ";
-    for (const auto& dim : original_shape) {
-        std::cout << dim << " ";
+    if (Logger::getInstance().getLogLevel() <= LogLevel::DEBUG) {
+        std::ostringstream oss;
+        oss << "Output shape=[";
+        for (size_t i = 0; i < original_shape.size(); ++i) {
+            if (i) oss << ",";
+            oss << original_shape[i];
+        }
+        oss << "] size=" << output_size;
+        Logger::getInstance().debug(oss.str());
     }
-    std::cout << std::endl;
-
-    std::cout << "Output tensor size: " << output_size << std::endl;
 
     flattened_output = std::vector<float>(output_data, output_data + output_size);
-
-    std::cout << "Flattened output size: " << flattened_output.size() << std::endl;
 
     return true;
 }

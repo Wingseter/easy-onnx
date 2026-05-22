@@ -51,28 +51,43 @@
 - `CppApplication/CMakeLists.txt` (라인 60–84)
 - `CppLibrary/src/Model.cpp` (`setSessionOption`, `setModel`의 env lazy-init)
 
-### Step 2 — 내부 부채 정리 (공개 API 표면 유지)
+### Step 2 — 내부 부채 정리 (공개 API 표면 유지) ✅ 완료 (2026-05-20)
 
 **의도**: 사용자 가시 API는 그대로 두고 내부만 정리. Step 3에서 API를 갈아엎기 전에 안전망 마련.
 
-작업:
-1. **전역 정적 상태 제거** — `CppLibrary/src/aiRunner.cpp:14-20, 194-195, 288-289`의 `static std::shared_ptr<Workflow> workflow`, `static std::vector<float> flattened_output`, `static std::map<int, std::vector<float>> instance_outputs`, `static LogCallbackC user_log_callback` 모두 `ModelManager` 싱글톤 내부 멤버로 이동. 단일 모델 API(`InitModel` 등)는 내부적으로 `ModelManager::getInstance().createInstance()`로 고정 ID(예: `0`)를 잡고 그 인스턴스를 사용하는 thin 어댑터로 재구현.
-2. **로깅 일원화** — `Model.cpp:48-49`, `Workflow.cpp:13, 43-50, 96` 외 `git grep -nE 'std::(cout|cerr)' CppLibrary/src/` 결과 전부를 `Logger::info()/debug()/warn()/error()`로 치환. Logger 초기화 전에 호출되는 경로가 있다면 Logger에 lazy-init 보장.
-3. **async 결과 캐시 스레드 안전화** — `aiRunner.cpp:215-216, 242-243`에서 `instance_outputs` 업데이트가 mutex 보호 없이 진행됨. `ModelManager`에 `std::mutex outputs_mutex_` 추가, async 콜백 경로와 `GetInstanceFlattenedOutput` 읽기 경로 모두 보호. atomic flag `is_running_`만으로는 부족하다는 점을 코드 위치별 주석 한 줄로 명시.
-4. **소유권 명세** — Workflow 인스턴스의 라이프사이클을 `ModelManager`가 단독 소유(`std::shared_ptr` 컨테이너 한 곳). `aiRunner.cpp`에서 별도 `shared_ptr<Workflow>` 보관 금지. (자료: `ModelManager.cpp:60` `instances_` 맵.)
-5. **DirectML device_id 노출 준비** — Step 3에서 노출시킬 대비로 `ExecutionProviderConfig::TryAppendAcceleratedEP(Ort::SessionOptions&, int device_id = 0)` 시그니처에 기본값 인자 추가(외부 호출 변경 없이 내부 인터페이스만 확장).
+**적용 내역**:
+1. **전역 정적 상태 제거** — `aiRunner.cpp`의 9개 file-scope static을 모두 제거:
+   - 단일 모델 상태 (`workflow`, `flattened_output`, `original_shape`, `async_future`, `async_result`) → `ModelManager`의 **default-instance** 상태(`default_id_`, `default_async_future_`, `default_async_result_`)로 이동. 별도 `instance_id` 예약 없이 `instances_` 맵을 그대로 공유하며 ID만 추적.
+   - 멀티 모델 캐시 (`instance_outputs`, `instance_shapes`) → 제거. 사본 보관은 무의미했음(워크플로우 vector가 동일 생명주기). `getFlattenedOutput(id)`이 workflow의 vector 참조를 직접 반환.
+   - 로그 콜백 브리지 (`user_log_callback`, `user_log_data`) → `Logger`의 `c_callback_`/`c_callback_user_data_` 멤버로 이동, `Logger::setCCallback`/`clearCCallback` API 추가.
+2. **로깅 일원화** — `Model.cpp`, `Workflow.cpp`, `DataLoader.cpp`, `ModelManager.cpp`의 모든 `std::cout`/`std::cerr` 호출(약 30+ 군데)을 `Logger::info()/debug()/warn()/error()`로 치환. 디버그 수준의 텐서 shape 트레이스는 `getLogLevel() <= DEBUG` 가드로 비용 절감. `iostream` 직접 사용은 이제 `Logger.cpp`(콘솔 sink)와 pch.h에 한정.
+3. **DirectML device_id 노출 준비** — `TryAppendAcceleratedEP(Ort::SessionOptions&, int device_id = 0)`로 시그니처 확장. macOS CoreML은 device_id 무시, DML은 디바이스 선택에 사용.
+4. **소유권 명세** — Workflow 라이프사이클은 `ModelManager::instances_` 단독. `aiRunner.cpp`에 별도 `shared_ptr<Workflow>` 잔재 없음.
+5. **동시성 보호** — `ModelManager`에 `default_mutex_` 추가하여 `default_id_`/`default_async_future_`/`default_async_result_` 접근 직렬화. 기존 `instances_mutex_`는 인스턴스 맵 보호 그대로. 잠금 순서는 `default_mutex_ → instances_mutex_` 단방향(주석 명시).
+6. **종료 시점 안정화** — Logger/ModelManager를 **immortal singleton**(heap allocation + 미해제)으로 변경. ORT 1.26은 process exit 시점에 내부 mutex를 다시 잡는 코드 경로가 있어 정적 destructor 순서와 충돌하면 `std::system_error: mutex lock failed: Invalid argument`로 SIGABRT(134) 발생. 싱글톤이 process 수명 끝까지 살아있으면 모든 ORT 객체도 leak되어 OS가 정리 — exit 코드 0 회복.
 
-**완료 기준**:
-- `git grep -nE 'std::(cout|cerr)' CppLibrary/src/` 결과 0건.
-- `git grep -nE '^\s*static ' CppLibrary/src/aiRunner.cpp` 결과 0건(또는 비-상태 const만).
-- `CppApplication` 7개 시나리오 모두 통과(공개 API 시그니처 동일).
-- 가능하면 `-fsanitize=thread`로 빌드해서 async 시나리오 실행 시 race 보고 없음.
+**검증**:
+- ✅ `git grep -nE 'std::(cout|cerr)' CppLibrary/src/` → `Logger.cpp` 외 0건
+- ✅ `grep -nE '^\s*static ' CppLibrary/src/aiRunner.cpp` → 0건
+- ✅ `cmake --build build --config Release -j` 통과
+- ✅ `./build/CppApplication/CppApplication /tmp/mnist.onnx` 7개 시나리오: 단일/배치/2x/async 단일/async 배치/멀티 인스턴스/로깅 — Step 1과 동일 출력(`-57.3601`, instance2=-1.78341, instance3=-3.5309) + EXIT_CODE=0
+- ✅ `--gpu`(CoreML)도 동일 출력 + EXIT_CODE=0
+- ✅ 배치 실패 메시지가 `[ERROR] Default batch run error: ...` 형태로 Logger 포맷에 포함(MNIST batch=1 고정은 사전 존재 모델 한정 제약)
+- ⏭️ ThreadSanitizer 빌드: 시간상 미실시. Step 3에서 async 경로 재설계 시점에 함께 검증
 
-수정 파일:
-- `CppLibrary/src/aiRunner.cpp` (~362 → 슬림화)
-- `CppLibrary/src/ModelManager.cpp`, `CppLibrary/include/ModelManager.h` (멤버 추가)
-- `CppLibrary/src/Model.cpp`, `CppLibrary/src/Workflow.cpp` (cout 제거)
-- `CppLibrary/include/ExecutionProviderConfig.h` (시그니처 확장)
+**수정 파일**:
+- `CppLibrary/include/Logger.h`, `CppLibrary/src/Logger.cpp` (C 콜백 브리지 + immortal singleton)
+- `CppLibrary/include/ModelManager.h`, `CppLibrary/src/ModelManager.cpp` (default-instance + async 흡수 + immortal singleton)
+- `CppLibrary/include/ExecutionProviderConfig.h`, `CppLibrary/src/ExecutionProviderConfig.cpp` (`device_id` 파라미터)
+- `CppLibrary/src/Model.cpp` (cout/cerr 제거)
+- `CppLibrary/src/Workflow.cpp` (cout/cerr 제거)
+- `CppLibrary/src/DataLoader.cpp` (cout/cerr 제거)
+- `CppLibrary/src/aiRunner.cpp` (362→230행, static 0개)
+
+**Step 2 후 깨달은 점** (Step 3 작업에 영향):
+- 멀티 모델 cache 사본은 무의미 — Step 3의 새 핸들 API도 직접 vector 참조 반환 패턴 유지
+- ORT 1.26 exit-time mutex 이슈는 모든 singleton에 적용 — Step 3에서 새 singleton 추가 시 동일 immortal 패턴 적용 필요
+- `default_async_future_`를 ModelManager가 보유하는 구조는 Step 3에서 핸들별 async 상태로 자연스럽게 일반화 가능 (Workflow.current_future_를 활용)
 
 ### Step 3 — 공개 C ABI 재설계 (Breaking, v0.2.0)
 

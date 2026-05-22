@@ -9,9 +9,10 @@
 // safe fallback when this returns false.
 //
 // Behavior:
-//   - macOS : appends CoreML EP (flags = 0 — let CoreML decide ANE/GPU/CPU)
-//   - Win32 : appends DirectML EP (device 0)
-//   - other : no-op, returns false
-bool TryAppendAcceleratedEP(Ort::SessionOptions& opts);
+//   - macOS : appends CoreML EP (flags = 0 — let CoreML decide ANE/GPU/CPU).
+//             device_id is ignored (CoreML has no multi-device selection).
+//   - Win32 : appends DirectML EP for the requested device_id (default 0).
+//   - other : no-op, returns false.
+bool TryAppendAcceleratedEP(Ort::SessionOptions& opts, int device_id = 0);
 
 #endif // AIRUNNER_EXECUTION_PROVIDER_CONFIG_H
