@@ -9,98 +9,65 @@
 #include <memory>
 #include <mutex>
 #include <atomic>
-#include <future>
-#include <functional>
-#include <string>
 #include <vector>
+#include <cstdint>
 
-class Workflow;
+#include "Workflow.h"  // brings in Workflow + InferenceCallback
 
-// Async callback used by the default-instance C ABI bridge (float-typed only,
-// matching the public C surface). Internal multi-instance API does not expose
-// async yet — that lands with Step 3.
-using DefaultAsyncCallback =
-    std::function<void(bool success, const std::vector<float>& output)>;
-
+// Owns every model instance. Each instance is addressed by an integer handle
+// returned from create_instance(). As of v0.2.0 there is no default/global
+// instance — the legacy single-model C ABI was removed.
 class ModelManager {
 public:
     static ModelManager& getInstance();
 
     // ------------------------------------------------------------------
-    // Multi-instance API — caller chooses the instance id explicitly.
+    // Instance lifecycle
     // ------------------------------------------------------------------
-
-    // Create a new model instance, returns instance ID
-    int createInstance();
-
-    // Destroy a model instance
-    bool destroyInstance(int instance_id);
-
-    // Initialize model for a specific instance
-    bool initModel(int instance_id, const char* modelPath, bool cpu_use);
-
-    // Run inference on a specific instance
-    bool runModel(int instance_id, float* data, int num_elements);
-    bool runModel(int instance_id, int* data, int num_elements);
-    bool runModel(int instance_id, double* data, int num_elements);
-
-    // Run batch inference on a specific instance
-    bool runModelBatch(int instance_id, float* data, int batch_size, int elements_per_sample);
-    bool runModelBatch(int instance_id, int* data, int batch_size, int elements_per_sample);
-    bool runModelBatch(int instance_id, double* data, int batch_size, int elements_per_sample);
-
-    // Get output from a specific instance
-    const std::vector<float>& getFlattenedOutput(int instance_id) const;
-    const std::vector<int64_t>& getOriginalShape(int instance_id) const;
-
-    // Get info from a specific instance
-    int getElementsPerSample(int instance_id) const;
-    bool isInitialized(int instance_id) const;
-
-    // Get all active instance IDs
-    std::vector<int> getActiveInstances() const;
-
-    // Get instance count
-    int getInstanceCount() const;
+    int  create_instance();                 // returns a new instance id (>= 1)
+    bool destroy_instance(int instance_id);
+    bool init_model(int instance_id, const char* modelPath, bool cpu_use);
 
     // ------------------------------------------------------------------
-    // Default-instance API — backs the legacy single-model C ABI.
-    //
-    // The default instance lives in the same `instances_` map as user-created
-    // ones, but its id is tracked here so the C ABI does not need any
-    // file-scope state. Calling initDefault() destroys any prior default.
+    // Synchronous inference
     // ------------------------------------------------------------------
+    bool run_model(int instance_id, float* data, int num_elements);
+    bool run_model(int instance_id, int* data, int num_elements);
+    bool run_model(int instance_id, double* data, int num_elements);
 
-    bool initDefault(const char* modelPath, bool cpu_use);
-    void resetDefault();
+    bool run_model_batch(int instance_id, float* data, int batch_size, int elements_per_sample);
+    bool run_model_batch(int instance_id, int* data, int batch_size, int elements_per_sample);
+    bool run_model_batch(int instance_id, double* data, int batch_size, int elements_per_sample);
 
-    bool runDefault(float* data, int num_elements);
-    bool runDefault(int* data, int num_elements);
-    bool runDefault(double* data, int num_elements);
+    // ------------------------------------------------------------------
+    // Asynchronous inference — the future/result live in the target Workflow.
+    // ------------------------------------------------------------------
+    bool run_model_async(int instance_id, float* data, int num_elements);
+    bool run_model_async(int instance_id, int* data, int num_elements);
+    bool run_model_async(int instance_id, double* data, int num_elements);
 
-    bool runDefaultBatch(float* data, int batch_size, int elements_per_sample);
-    bool runDefaultBatch(int* data, int batch_size, int elements_per_sample);
-    bool runDefaultBatch(double* data, int batch_size, int elements_per_sample);
+    bool run_model_batch_async(int instance_id, float* data, int batch_size, int elements_per_sample);
+    bool run_model_batch_async(int instance_id, int* data, int batch_size, int elements_per_sample);
+    bool run_model_batch_async(int instance_id, double* data, int batch_size, int elements_per_sample);
 
-    bool runDefaultAsync(float* data, int num_elements);
-    bool runDefaultAsync(int* data, int num_elements);
-    bool runDefaultAsync(double* data, int num_elements);
+    bool run_model_async_callback(int instance_id, float* data, int num_elements,
+                                  InferenceCallback callback);
 
-    bool runDefaultBatchAsync(float* data, int batch_size, int elements_per_sample);
+    bool is_inference_running(int instance_id) const;
+    bool wait_for_inference(int instance_id);
+    bool get_async_result(int instance_id);
 
-    bool runDefaultAsyncCallback(float* data, int num_elements,
-                                 DefaultAsyncCallback callback);
+    // ------------------------------------------------------------------
+    // Output / info
+    // ------------------------------------------------------------------
+    const std::vector<float>& get_flattened_output(int instance_id) const;
+    const std::vector<int64_t>& get_original_shape(int instance_id) const;
 
-    bool isDefaultRunning() const;
-    void waitForDefault();
-    bool getDefaultAsyncResult();
+    int  get_elements_per_sample(int instance_id) const;
+    bool is_initialized(int instance_id) const;
 
-    const std::vector<float>& getDefaultFlattenedOutput() const;
-    const std::vector<int64_t>& getDefaultOriginalShape() const;
-    int getDefaultElementsPerSample() const;
-    bool isDefaultInitialized() const;
-
-    bool runDefaultTest(const char* modelPath, bool cpu_use, float* data, int num_elements);
+    std::vector<int> get_active_instances() const;
+    int get_instance_count() const;
 
 private:
     ModelManager() = default;
@@ -108,28 +75,13 @@ private:
     ModelManager(const ModelManager&) = delete;
     ModelManager& operator=(const ModelManager&) = delete;
 
-    std::shared_ptr<Workflow> getWorkflow(int instance_id) const;
-    std::shared_ptr<Workflow> getDefaultWorkflow() const;
-
-    // Ensures a default-instance workflow exists; returns its id. Caller
-    // must NOT hold instances_mutex_ when calling.
-    int ensureDefaultInstance();
+    std::shared_ptr<Workflow> get_workflow(int instance_id) const;
 
     std::map<int, std::shared_ptr<Workflow>> instances_;
     mutable std::mutex instances_mutex_;
     std::atomic<int> next_id_{1};
 
-    // ---- default-instance state -------------------------------------------
-    // default_id_ is read under default_mutex_; future + last result are also
-    // guarded by default_mutex_ because RunDefaultAsync may be invoked from
-    // one thread while GetDefaultAsyncResult / WaitForDefault are called from
-    // another (legacy C ABI did not document a threading contract).
-    mutable std::mutex default_mutex_;
-    int default_id_ = -1;
-    std::future<bool> default_async_future_;
-    std::atomic<bool> default_async_result_{false};
-
-    // Empty vectors for error cases
+    // Empty vectors returned for unknown instance ids.
     static const std::vector<float> empty_float_vector_;
     static const std::vector<int64_t> empty_int64_vector_;
 };

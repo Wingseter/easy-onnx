@@ -9,7 +9,7 @@
 
 #include <sstream>
 
-void Model::setSessionOption(bool cpu_use) {
+void Model::set_session_option(bool cpu_use) {
     session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
 
     unsigned int num_threads = std::thread::hardware_concurrency();
@@ -32,7 +32,7 @@ void Model::setSessionOption(bool cpu_use) {
 }
 
 
-void Model::setModel(const char * modelPath) {
+void Model::set_model(const char * modelPath) {
     initialized = true;
     if (!env) {
         env = std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "airunner");
@@ -41,7 +41,7 @@ void Model::setModel(const char * modelPath) {
     session = std::move(sessionLocal);
 }
 
-void Model::setModelInOutput() {
+void Model::set_model_in_output() {
     Ort::AllocatorWithDefaultOptions allocator;
 
     // Get input, output name
@@ -56,7 +56,7 @@ void Model::setModelInOutput() {
 }
 
 
-void Model::setModelInOutputTypeDim() {
+void Model::set_model_in_output_type_dim() {
     auto input_type_info = session->GetInputTypeInfo(0);
     auto input_tensor_info = input_type_info.GetTensorTypeAndShapeInfo();
 
@@ -74,7 +74,7 @@ void Model::setModelInOutputTypeDim() {
 
 }
 
-bool Model::runInference(Ort::Value input_tensor) {
+bool Model::run_inference(Ort::Value input_tensor) {
     if (!session) {
         Logger::getInstance().error("Session is not initialized!");
         return false;
@@ -127,15 +127,15 @@ bool Model::runInference(Ort::Value input_tensor) {
     return true;
 }
 
-const std::vector<float>& Model::getFlattenedOutput() const {
+const std::vector<float>& Model::get_flattened_output() const {
     return flattened_output;
 }
 
-const std::vector<int64_t>& Model::getOriginalShape() const {
+const std::vector<int64_t>& Model::get_original_shape() const {
     return original_shape;
 }
 
-void Model::resetModel() {
+void Model::reset_model() {
     if (session) {
         session.reset();
         env.reset();

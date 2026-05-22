@@ -89,9 +89,101 @@
 - ORT 1.26 exit-time mutex 이슈는 모든 singleton에 적용 — Step 3에서 새 singleton 추가 시 동일 immortal 패턴 적용 필요
 - `default_async_future_`를 ModelManager가 보유하는 구조는 Step 3에서 핸들별 async 상태로 자연스럽게 일반화 가능 (Workflow.current_future_를 활용)
 
-### Step 3 — 공개 C ABI 재설계 (Breaking, v0.2.0)
+### Step 3 — 공개 C ABI 재설계 (Breaking, v0.2.0) ✅ 완료 (2026-05-22)
 
 **의도**: 핸들 기반 단일 형태로 통일. v0.2.0 메이저 변경.
+
+#### 적용된 변경
+
+**1. 전역 상태 API 전부 삭제** (`aiRunner.h`/`aiRunner.cpp`)
+- 삭제: `InitModel`, `RunModelInt/Float/Double`, `RunModelBatchInt/Float/Double`,
+  `RunModelFloatAsync/IntAsync/DoubleAsync`, `RunModelBatchFloatAsync`,
+  `RunModelFloatAsyncCallback`, `IsInferenceRunning`, `WaitForInference`,
+  `GetAsyncResult`, `GetFlattenedOutput`, `GetOriginalShape`,
+  `GetElementsPerSample`, `allCheck` — 총 17개 함수 제거.
+- `aiRunner.h`에 v0.2.0 ABI 사용 규약 헤더 주석 추가(핸들 규칙, `bool` 반환 규약,
+  출력 포인터 유효 기간).
+
+**2. 핸들 기반 API로 통일** — 모든 호출 첫 인자 `int instance_id`, 액션 함수는 `bool` 반환
+- 라이프사이클: `CreateModelInstance`, `DestroyModelInstance`, `InitModelInstance`
+- 동기: `RunModelInstanceInt/Float/Double`, `RunModelInstanceBatchInt/Float/Double`
+- 비동기: `RunModelInstanceIntAsync/FloatAsync/DoubleAsync`,
+  `RunModelInstanceBatchIntAsync/FloatAsync/DoubleAsync`,
+  `IsInstanceInferenceRunning`, `WaitForInstanceInference`,
+  `GetInstanceAsyncResult`, `RunModelInstanceFloatAsyncCallback`
+- 출력/정보: `GetInstanceFlattenedOutput`, `GetInstanceOriginalShape`,
+  `GetInstanceElementsPerSample`, `IsInstanceInitialized`, `GetModelInstanceCount`
+- 계획에 명시되지 않았던 `GetInstanceAsyncResult`를 추가 — future 기반 async가
+  성공/실패를 알 수 있어야 하고 `CppApplication`도 이를 출력하므로 필수.
+  비동기 batch도 int/double까지 노출(Workflow 템플릿이 이미 3종 인스턴스화되어 있어 추가 비용 0).
+
+**3. `ModelManager`에서 default-instance 머신 전부 제거**
+- 삭제: `initDefault`/`resetDefault`/`runDefault*`/`runDefaultBatch*`/`runDefaultAsync*`/
+  `getDefault*`/`isDefault*`/`runDefaultTest`, `getDefaultWorkflow`,
+  `ensureDefaultInstance`, `default_mutex_`/`default_id_`/`default_async_future_`/
+  `default_async_result_`, `DefaultAsyncCallback` typedef.
+- 멀티 인스턴스 API에 async 메서드 추가(`run_model_async`/`run_model_batch_async`/
+  `run_model_async_callback`/`is_inference_running`/`wait_for_inference`/`get_async_result`).
+- not-found 분기를 `instance_not_found()` 헬퍼 한 줄로 정리.
+
+**4. async 상태 소유권을 `Workflow`로 이동** (Step 2에서 예고한 일반화)
+- `Workflow::run_model_async`/`run_model_batch_async`가 `std::future<bool>` 반환 대신
+  내부 `current_future_`에 저장하고 `bool`(시작 성공 여부) 반환.
+- 신규: `Workflow::get_async_result()` — `current_future_`를 join 후 결과 반환,
+  `last_result_`(atomic)에 캐시. `wait_for_inference()`도 동일하게 join 후 캐시.
+- **개선**: 이미 실행 중이면 새 async 요청을 거부(`false` 반환). 기존 코드는
+  실행 중인 future를 덮어써 그 소멸자가 블록될 수 있었음(잠재 hang) — 이제 차단.
+
+**5. 내부 C++ 메서드 네이밍 `snake_case` 정렬** (`Workflow`/`Model`/`ModelManager`)
+- `Model`: `setSessionOption`→`set_session_option`, `setModel`→`set_model`,
+  `setModelInOutput[TypeDim]`→`set_model_in_output[_type_dim]`, `resetModel`→`reset_model`,
+  `runInference`→`run_inference`, `isInitialized`→`is_initialized`,
+  `get{Flattened Output,OriginalShape,InputDims,InputType,InputName,OutputName}`→`get_*` snake.
+  여러 `public:` 블록을 하나로 정리.
+- `Workflow`: `get{FlattenedOutput,OriginalShape,ElementsPerSample}`→`get_*` snake,
+  `isInferenceRunning`→`is_inference_running`, `waitForInference`→`wait_for_inference`.
+  죽은 코드 `run_test` 제거(`allCheck` 삭제로 호출처 소멸).
+- `ModelManager`: `createInstance`/`destroyInstance`/`initModel`/`runModel*`/
+  `getFlattenedOutput`/`getOriginalShape`/`getElementsPerSample`/`isInitialized`/
+  `getActiveInstances`/`getInstanceCount`/`getWorkflow` → `snake_case`.
+  싱글톤 접근자 `getInstance()`는 `Logger`와의 일관성·관용 표현이므로 유지.
+
+**6. `CppApplication/main.cpp` 새 API로 재작성**
+- 시나리오 7개 유지(단일 → 배치 → 성능 비교 → async → async 배치 → 멀티 인스턴스 → 로깅).
+- 시나리오 1~5는 단일 인스턴스 핸들 `model`을 공유; 멀티 인스턴스 시나리오 직전에
+  `model`을 파괴해 인스턴스 카운트 출력이 그 시나리오가 만든 것만 반영하도록 정리.
+- `bool` 반환을 받아 SUCCESS/FAILED를 명시 출력 — MNIST의 batch=1 고정 제약이
+  이제 침묵하지 않고 `FAILED (model may require a fixed batch size)`로 표면화.
+
+**미적용(의도적 deferral)**:
+- 계획 5번 **EP 선택 enum**(`InitModelInstanceWithEP` + `EasyOnnxEP{CPU,CoreML,DML}`):
+  계획이 "선택, 시간 허용 시"로 명시. 핵심 breaking 변경(핸들 통일)을 깨끗하게
+  내보내는 것을 우선하고, 절반만 배선된 EP enum의 리스크를 피하기 위해 후속 작업으로 분리.
+  `ExecutionProviderConfig::TryAppendAcceleratedEP(..., device_id)`(Step 2에서 확장)은
+  이 후속 작업의 사전 준비로 그대로 유지.
+- 버전 bump(`0.1.0`→`0.2.0`)는 Step 4 작업.
+
+#### 검증 결과
+- ✅ `cmake --build build --config Release -j` 통과 (stale PCH로 인한 1회 재구성 후).
+- ✅ `./build/CppApplication/CppApplication /tmp/mnist.onnx` (CPU) — 7개 시나리오 통과,
+  단일 `-57.3601`, async `-57.3601`, 멀티 인스턴스 instance2=-1.78341/instance3=-3.5309,
+  카운트 2→0, **EXIT_CODE=0**. Step 1/2 baseline과 동일.
+- ✅ `--gpu`(CoreML) — `EP appended: CoreML`, 동일 출력, **EXIT_CODE=0**.
+- ✅ `git grep -n 'workflow' CppLibrary/src/aiRunner.cpp` → 0건.
+- ✅ `aiRunner.h` 전 함수 핸들 기반 + `bool`/포인터 반환 + PascalCase.
+- ⚠️ batch(batch=2)는 MNIST fixed-batch=1 모델 제약으로 `FAILED` — 회귀 아님,
+  동적 배치 fixture 추가는 후속 작업(Step 1 노트와 동일).
+- ⏭️ ThreadSanitizer: 미실시. async 경로가 self-contained해졌으므로 후속 검증 대상.
+
+**Step 3 후 깨달은 점** (Step 4 작업에 영향):
+- `IsInstanceInitialized`는 현재 "인스턴스 존재 여부"만 검사(모델 로드 여부 아님) —
+  구버전 `isInitialized`와 동일한 약점. `Workflow`에 모델 로드 상태 질의가 없어 유지.
+  Step 4 문서에서 의미를 명확히 기술하거나 후속 개선 대상.
+- 마이그레이션 가이드(`docs/migration-v0.2.0.md`)는 `InitModel` →
+  `CreateModelInstance`+`InitModelInstance` 1:1 매핑 외에 "전역 상태 → 핸들 수명 관리"
+  개념 전환도 설명해야 함.
+
+#### 원래 계획 (참고용)
 
 작업:
 1. `CppLibrary/include/aiRunner.h`에서 전역 상태 API **전부 삭제**:

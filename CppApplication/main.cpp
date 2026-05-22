@@ -25,14 +25,21 @@ int main(int argc, char** argv) {
     std::cout << "Model: " << modelPath << std::endl;
     std::cout << "Mode: " << (cpu_use ? "CPU" : "GPU/accelerator (EP fallback if unavailable)") << std::endl;
 
-    // Model initialization
-    if (!InitModel(modelPath, cpu_use)) {
-        std::cerr << "Failed to initialize model." << std::endl;
+    using clock = std::chrono::high_resolution_clock;
+    auto ms = [](clock::duration d) {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(d).count();
+    };
+
+    // Primary instance used by scenarios 1-5.
+    int model = CreateModelInstance();
+    std::cout << "Created model instance: " << model << std::endl;
+
+    if (!InitModelInstance(model, modelPath, cpu_use)) {
+        std::cerr << "Failed to initialize model instance." << std::endl;
         return -1;
     }
 
-    // Get elements per sample
-    int elements_per_sample = GetElementsPerSample();
+    int elements_per_sample = GetInstanceElementsPerSample(model);
     std::cout << "Elements per sample: " << elements_per_sample << std::endl;
 
     // ===== Single Sample Inference Test =====
@@ -42,16 +49,16 @@ int main(int argc, char** argv) {
         single_data[i] = static_cast<float>(i % 100);
     }
 
-    auto start = std::chrono::high_resolution_clock::now();
-    RunModelFloat(single_data.data(), elements_per_sample);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    auto start = clock::now();
+    bool ok = RunModelInstanceFloat(model, single_data.data(), elements_per_sample);
+    auto end = clock::now();
 
-    int size;
-    const float* output = GetFlattenedOutput(&size);
+    int size = 0;
+    const float* output = GetInstanceFlattenedOutput(model, &size);
+    std::cout << "Inference: " << (ok ? "SUCCESS" : "FAILED") << std::endl;
     std::cout << "Output size: " << size << std::endl;
-    std::cout << "First element: " << output[0] << std::endl;
-    std::cout << "Inference time: " << duration.count() << " ms" << std::endl;
+    if (size > 0) std::cout << "First element: " << output[0] << std::endl;
+    std::cout << "Inference time: " << ms(end - start) << " ms" << std::endl;
 
     // ===== Batch Inference Test =====
     std::cout << "\n--- Batch Inference (batch_size=2) ---" << std::endl;
@@ -61,111 +68,113 @@ int main(int argc, char** argv) {
         batch_data[i] = static_cast<float>(i % 100);
     }
 
-    start = std::chrono::high_resolution_clock::now();
-    RunModelBatchFloat(batch_data.data(), batch_size, elements_per_sample);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    start = clock::now();
+    ok = RunModelInstanceBatchFloat(model, batch_data.data(), batch_size, elements_per_sample);
+    end = clock::now();
 
-    output = GetFlattenedOutput(&size);
-    int shape_size;
-    const int64_t* shape = GetOriginalShape(&shape_size);
-
-    std::cout << "Output size: " << size << std::endl;
-    std::cout << "Output shape: [";
-    for (int i = 0; i < shape_size; ++i) {
-        std::cout << shape[i];
-        if (i < shape_size - 1) std::cout << ", ";
+    std::cout << "Batch inference: "
+              << (ok ? "SUCCESS" : "FAILED (model may require a fixed batch size)") << std::endl;
+    if (ok) {
+        output = GetInstanceFlattenedOutput(model, &size);
+        int shape_size = 0;
+        const int64_t* shape = GetInstanceOriginalShape(model, &shape_size);
+        std::cout << "Output size: " << size << std::endl;
+        std::cout << "Output shape: [";
+        for (int i = 0; i < shape_size; ++i) {
+            std::cout << shape[i];
+            if (i < shape_size - 1) std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
+        if (size > 0) std::cout << "First element: " << output[0] << std::endl;
     }
-    std::cout << "]" << std::endl;
-    std::cout << "First element: " << output[0] << std::endl;
-    std::cout << "Batch inference time: " << duration.count() << " ms" << std::endl;
+    std::cout << "Batch inference time: " << ms(end - start) << " ms" << std::endl;
 
     // ===== Performance Comparison =====
     std::cout << "\n--- Performance Comparison ---" << std::endl;
 
-    // Single sample x2
-    start = std::chrono::high_resolution_clock::now();
-    RunModelFloat(single_data.data(), elements_per_sample);
-    RunModelFloat(single_data.data(), elements_per_sample);
-    end = std::chrono::high_resolution_clock::now();
-    auto single_x2_duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "2x Single inference: " << single_x2_duration.count() << " ms" << std::endl;
+    start = clock::now();
+    RunModelInstanceFloat(model, single_data.data(), elements_per_sample);
+    RunModelInstanceFloat(model, single_data.data(), elements_per_sample);
+    end = clock::now();
+    auto single_x2 = ms(end - start);
+    std::cout << "2x Single inference: " << single_x2 << " ms" << std::endl;
 
-    // Batch size 2
-    start = std::chrono::high_resolution_clock::now();
-    RunModelBatchFloat(batch_data.data(), 2, elements_per_sample);
-    end = std::chrono::high_resolution_clock::now();
-    auto batch_duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "Batch(2) inference: " << batch_duration.count() << " ms" << std::endl;
+    start = clock::now();
+    RunModelInstanceBatchFloat(model, batch_data.data(), 2, elements_per_sample);
+    end = clock::now();
+    auto batch_ms = ms(end - start);
+    std::cout << "Batch(2) inference: " << batch_ms << " ms" << std::endl;
 
-    if (batch_duration.count() > 0) {
-        double speedup = static_cast<double>(single_x2_duration.count()) / batch_duration.count();
-        std::cout << "Speedup: " << speedup << "x" << std::endl;
+    if (batch_ms > 0) {
+        std::cout << "Speedup: " << (static_cast<double>(single_x2) / batch_ms) << "x" << std::endl;
     }
 
     // ===== Async Inference Test =====
     std::cout << "\n--- Async Inference Test ---" << std::endl;
 
-    // Start async inference
     std::cout << "Starting async inference..." << std::endl;
-    start = std::chrono::high_resolution_clock::now();
-    RunModelFloatAsync(single_data.data(), elements_per_sample);
+    start = clock::now();
+    if (!RunModelInstanceFloatAsync(model, single_data.data(), elements_per_sample)) {
+        std::cerr << "Failed to start async inference." << std::endl;
+    }
 
-    // Do other work while inference is running
     std::cout << "Inference running in background..." << std::endl;
     int work_count = 0;
-    while (IsInferenceRunning()) {
-        // Simulate doing other work
+    while (IsInstanceInferenceRunning(model)) {
         work_count++;
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         std::cout << "  Working... (" << work_count * 50 << " ms elapsed)" << std::endl;
     }
 
-    // Get result
-    bool async_success = GetAsyncResult();
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    bool async_success = GetInstanceAsyncResult(model);
+    end = clock::now();
 
-    output = GetFlattenedOutput(&size);
+    output = GetInstanceFlattenedOutput(model, &size);
     std::cout << "Async inference completed: " << (async_success ? "SUCCESS" : "FAILED") << std::endl;
     std::cout << "Output size: " << size << std::endl;
-    std::cout << "First element: " << output[0] << std::endl;
-    std::cout << "Total time (including background work): " << duration.count() << " ms" << std::endl;
+    if (size > 0) std::cout << "First element: " << output[0] << std::endl;
+    std::cout << "Total time (including background work): " << ms(end - start) << " ms" << std::endl;
 
     // ===== Async Batch Inference Test =====
     std::cout << "\n--- Async Batch Inference Test ---" << std::endl;
 
-    start = std::chrono::high_resolution_clock::now();
-    RunModelBatchFloatAsync(batch_data.data(), 2, elements_per_sample);
+    start = clock::now();
+    if (!RunModelInstanceBatchFloatAsync(model, batch_data.data(), 2, elements_per_sample)) {
+        std::cerr << "Failed to start async batch inference." << std::endl;
+    }
 
     std::cout << "Batch inference running in background..." << std::endl;
-    WaitForInference();  // Wait for completion
+    WaitForInstanceInference(model);
 
-    async_success = GetAsyncResult();
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    async_success = GetInstanceAsyncResult(model);
+    end = clock::now();
 
-    output = GetFlattenedOutput(&size);
-    shape = GetOriginalShape(&shape_size);
-    std::cout << "Async batch inference: " << (async_success ? "SUCCESS" : "FAILED") << std::endl;
-    std::cout << "Output shape: [";
-    for (int i = 0; i < shape_size; ++i) {
-        std::cout << shape[i];
-        if (i < shape_size - 1) std::cout << ", ";
+    std::cout << "Async batch inference: "
+              << (async_success ? "SUCCESS" : "FAILED (model may require a fixed batch size)") << std::endl;
+    if (async_success) {
+        int shape_size = 0;
+        const int64_t* shape = GetInstanceOriginalShape(model, &shape_size);
+        std::cout << "Output shape: [";
+        for (int i = 0; i < shape_size; ++i) {
+            std::cout << shape[i];
+            if (i < shape_size - 1) std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
     }
-    std::cout << "]" << std::endl;
-    std::cout << "Inference time: " << duration.count() << " ms" << std::endl;
+    std::cout << "Inference time: " << ms(end - start) << " ms" << std::endl;
+
+    // The primary instance is done. Free it before the multi-model scenario so
+    // the counts printed there reflect only what that scenario itself creates.
+    DestroyModelInstance(model);
 
     // ===== Multi-Model Management Test =====
     std::cout << "\n--- Multi-Model Management Test ---" << std::endl;
 
-    // Create two model instances
     int instance1 = CreateModelInstance();
     int instance2 = CreateModelInstance();
     std::cout << "Created instances: " << instance1 << ", " << instance2 << std::endl;
     std::cout << "Active instance count: " << GetModelInstanceCount() << std::endl;
 
-    // Initialize both instances with the same model (could be different models)
     std::cout << "\nInitializing instance " << instance1 << "..." << std::endl;
     if (!InitModelInstance(instance1, modelPath, cpu_use)) {
         std::cerr << "Failed to initialize instance " << instance1 << std::endl;
@@ -176,7 +185,6 @@ int main(int argc, char** argv) {
         std::cerr << "Failed to initialize instance " << instance2 << std::endl;
     }
 
-    // Prepare different data for each instance
     int elem1 = GetInstanceElementsPerSample(instance1);
     int elem2 = GetInstanceElementsPerSample(instance2);
     std::cout << "Instance " << instance1 << " elements per sample: " << elem1 << std::endl;
@@ -185,34 +193,30 @@ int main(int argc, char** argv) {
     std::vector<float> data1(elem1, 1.0f);  // Fill with 1.0
     std::vector<float> data2(elem2, 2.0f);  // Fill with 2.0
 
-    // Run inference on both instances
     std::cout << "\nRunning inference on instance " << instance1 << "..." << std::endl;
-    start = std::chrono::high_resolution_clock::now();
+    start = clock::now();
     RunModelInstanceFloat(instance1, data1.data(), elem1);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "Instance " << instance1 << " inference time: " << duration.count() << " ms" << std::endl;
+    end = clock::now();
+    std::cout << "Instance " << instance1 << " inference time: " << ms(end - start) << " ms" << std::endl;
 
     std::cout << "\nRunning inference on instance " << instance2 << "..." << std::endl;
-    start = std::chrono::high_resolution_clock::now();
+    start = clock::now();
     RunModelInstanceFloat(instance2, data2.data(), elem2);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "Instance " << instance2 << " inference time: " << duration.count() << " ms" << std::endl;
+    end = clock::now();
+    std::cout << "Instance " << instance2 << " inference time: " << ms(end - start) << " ms" << std::endl;
 
-    // Get outputs from each instance
-    int size1, size2;
+    int size1 = 0, size2 = 0;
     const float* out1 = GetInstanceFlattenedOutput(instance1, &size1);
     const float* out2 = GetInstanceFlattenedOutput(instance2, &size2);
 
-    std::cout << "\nInstance " << instance1 << " output: size=" << size1 << ", first=" << out1[0] << std::endl;
-    std::cout << "Instance " << instance2 << " output: size=" << size2 << ", first=" << out2[0] << std::endl;
+    std::cout << "\nInstance " << instance1 << " output: size=" << size1
+              << ", first=" << (size1 > 0 ? out1[0] : 0.0f) << std::endl;
+    std::cout << "Instance " << instance2 << " output: size=" << size2
+              << ", first=" << (size2 > 0 ? out2[0] : 0.0f) << std::endl;
 
-    // Verify outputs are different (different input data)
-    bool outputs_different = (out1[0] != out2[0]);
+    bool outputs_different = (size1 > 0 && size2 > 0 && out1[0] != out2[0]);
     std::cout << "Outputs are different: " << (outputs_different ? "YES" : "NO") << std::endl;
 
-    // Destroy instances
     std::cout << "\nDestroying instances..." << std::endl;
     DestroyModelInstance(instance1);
     DestroyModelInstance(instance2);

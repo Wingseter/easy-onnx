@@ -10,6 +10,16 @@
 const std::vector<float> ModelManager::empty_float_vector_;
 const std::vector<int64_t> ModelManager::empty_int64_vector_;
 
+namespace {
+// Logs "Instance <id> not found" once, returns false. Keeps the not-found
+// branch of every delegating method down to a single line.
+bool instance_not_found(int instance_id) {
+    Logger::getInstance().error(
+        std::string("Instance ") + std::to_string(instance_id) + " not found");
+    return false;
+}
+}  // namespace
+
 ModelManager& ModelManager::getInstance() {
     // Immortal singleton: leaked at process exit on purpose. Owning
     // Ort::Session/Env shared_ptrs whose destruction order is fragile under
@@ -19,14 +29,18 @@ ModelManager& ModelManager::getInstance() {
     return *instance;
 }
 
-int ModelManager::createInstance() {
+// =====================================================================
+// Instance lifecycle
+// =====================================================================
+
+int ModelManager::create_instance() {
     std::lock_guard<std::mutex> lock(instances_mutex_);
     int id = next_id_.fetch_add(1);
     instances_[id] = std::make_shared<Workflow>();
     return id;
 }
 
-bool ModelManager::destroyInstance(int instance_id) {
+bool ModelManager::destroy_instance(int instance_id) {
     std::lock_guard<std::mutex> lock(instances_mutex_);
     auto it = instances_.find(instance_id);
     if (it != instances_.end()) {
@@ -36,13 +50,9 @@ bool ModelManager::destroyInstance(int instance_id) {
     return false;
 }
 
-bool ModelManager::initModel(int instance_id, const char* modelPath, bool cpu_use) {
-    auto workflow = getWorkflow(instance_id);
-    if (!workflow) {
-        Logger::getInstance().error(
-            std::string("Instance ") + std::to_string(instance_id) + " not found");
-        return false;
-    }
+bool ModelManager::init_model(int instance_id, const char* modelPath, bool cpu_use) {
+    auto workflow = get_workflow(instance_id);
+    if (!workflow) return instance_not_found(instance_id);
 
     try {
         workflow->init_model(modelPath, cpu_use);
@@ -55,13 +65,13 @@ bool ModelManager::initModel(int instance_id, const char* modelPath, bool cpu_us
     }
 }
 
-bool ModelManager::runModel(int instance_id, float* data, int num_elements) {
-    auto workflow = getWorkflow(instance_id);
-    if (!workflow) {
-        Logger::getInstance().error(
-            std::string("Instance ") + std::to_string(instance_id) + " not found");
-        return false;
-    }
+// =====================================================================
+// Synchronous inference
+// =====================================================================
+
+bool ModelManager::run_model(int instance_id, float* data, int num_elements) {
+    auto workflow = get_workflow(instance_id);
+    if (!workflow) return instance_not_found(instance_id);
 
     try {
         workflow->run_model(data, num_elements);
@@ -74,9 +84,9 @@ bool ModelManager::runModel(int instance_id, float* data, int num_elements) {
     }
 }
 
-bool ModelManager::runModel(int instance_id, int* data, int num_elements) {
-    auto workflow = getWorkflow(instance_id);
-    if (!workflow) return false;
+bool ModelManager::run_model(int instance_id, int* data, int num_elements) {
+    auto workflow = get_workflow(instance_id);
+    if (!workflow) return instance_not_found(instance_id);
 
     try {
         workflow->run_model(data, num_elements);
@@ -89,9 +99,9 @@ bool ModelManager::runModel(int instance_id, int* data, int num_elements) {
     }
 }
 
-bool ModelManager::runModel(int instance_id, double* data, int num_elements) {
-    auto workflow = getWorkflow(instance_id);
-    if (!workflow) return false;
+bool ModelManager::run_model(int instance_id, double* data, int num_elements) {
+    auto workflow = get_workflow(instance_id);
+    if (!workflow) return instance_not_found(instance_id);
 
     try {
         workflow->run_model(data, num_elements);
@@ -104,9 +114,9 @@ bool ModelManager::runModel(int instance_id, double* data, int num_elements) {
     }
 }
 
-bool ModelManager::runModelBatch(int instance_id, float* data, int batch_size, int elements_per_sample) {
-    auto workflow = getWorkflow(instance_id);
-    if (!workflow) return false;
+bool ModelManager::run_model_batch(int instance_id, float* data, int batch_size, int elements_per_sample) {
+    auto workflow = get_workflow(instance_id);
+    if (!workflow) return instance_not_found(instance_id);
 
     try {
         workflow->run_model_batch(data, batch_size, elements_per_sample);
@@ -119,9 +129,9 @@ bool ModelManager::runModelBatch(int instance_id, float* data, int batch_size, i
     }
 }
 
-bool ModelManager::runModelBatch(int instance_id, int* data, int batch_size, int elements_per_sample) {
-    auto workflow = getWorkflow(instance_id);
-    if (!workflow) return false;
+bool ModelManager::run_model_batch(int instance_id, int* data, int batch_size, int elements_per_sample) {
+    auto workflow = get_workflow(instance_id);
+    if (!workflow) return instance_not_found(instance_id);
 
     try {
         workflow->run_model_batch(data, batch_size, elements_per_sample);
@@ -134,9 +144,9 @@ bool ModelManager::runModelBatch(int instance_id, int* data, int batch_size, int
     }
 }
 
-bool ModelManager::runModelBatch(int instance_id, double* data, int batch_size, int elements_per_sample) {
-    auto workflow = getWorkflow(instance_id);
-    if (!workflow) return false;
+bool ModelManager::run_model_batch(int instance_id, double* data, int batch_size, int elements_per_sample) {
+    auto workflow = get_workflow(instance_id);
+    if (!workflow) return instance_not_found(instance_id);
 
     try {
         workflow->run_model_batch(data, batch_size, elements_per_sample);
@@ -149,34 +159,106 @@ bool ModelManager::runModelBatch(int instance_id, double* data, int batch_size, 
     }
 }
 
-const std::vector<float>& ModelManager::getFlattenedOutput(int instance_id) const {
-    auto workflow = getWorkflow(instance_id);
+// =====================================================================
+// Asynchronous inference — delegated to the target Workflow, which owns
+// its own future and last-result state.
+// =====================================================================
+
+bool ModelManager::run_model_async(int instance_id, float* data, int num_elements) {
+    auto wf = get_workflow(instance_id);
+    if (!wf) return instance_not_found(instance_id);
+    return wf->run_model_async(data, num_elements);
+}
+
+bool ModelManager::run_model_async(int instance_id, int* data, int num_elements) {
+    auto wf = get_workflow(instance_id);
+    if (!wf) return instance_not_found(instance_id);
+    return wf->run_model_async(data, num_elements);
+}
+
+bool ModelManager::run_model_async(int instance_id, double* data, int num_elements) {
+    auto wf = get_workflow(instance_id);
+    if (!wf) return instance_not_found(instance_id);
+    return wf->run_model_async(data, num_elements);
+}
+
+bool ModelManager::run_model_batch_async(int instance_id, float* data, int batch_size, int elements_per_sample) {
+    auto wf = get_workflow(instance_id);
+    if (!wf) return instance_not_found(instance_id);
+    return wf->run_model_batch_async(data, batch_size, elements_per_sample);
+}
+
+bool ModelManager::run_model_batch_async(int instance_id, int* data, int batch_size, int elements_per_sample) {
+    auto wf = get_workflow(instance_id);
+    if (!wf) return instance_not_found(instance_id);
+    return wf->run_model_batch_async(data, batch_size, elements_per_sample);
+}
+
+bool ModelManager::run_model_batch_async(int instance_id, double* data, int batch_size, int elements_per_sample) {
+    auto wf = get_workflow(instance_id);
+    if (!wf) return instance_not_found(instance_id);
+    return wf->run_model_batch_async(data, batch_size, elements_per_sample);
+}
+
+bool ModelManager::run_model_async_callback(int instance_id, float* data, int num_elements,
+                                            InferenceCallback callback) {
+    auto wf = get_workflow(instance_id);
+    if (!wf) return instance_not_found(instance_id);
+    wf->run_model_async_callback(data, num_elements, std::move(callback));
+    return true;
+}
+
+bool ModelManager::is_inference_running(int instance_id) const {
+    auto wf = get_workflow(instance_id);
+    if (!wf) return false;
+    return wf->is_inference_running();
+}
+
+bool ModelManager::wait_for_inference(int instance_id) {
+    auto wf = get_workflow(instance_id);
+    if (!wf) return false;
+    wf->wait_for_inference();
+    return true;
+}
+
+bool ModelManager::get_async_result(int instance_id) {
+    auto wf = get_workflow(instance_id);
+    if (!wf) return false;
+    return wf->get_async_result();
+}
+
+// =====================================================================
+// Output / info
+// =====================================================================
+
+const std::vector<float>& ModelManager::get_flattened_output(int instance_id) const {
+    auto workflow = get_workflow(instance_id);
     if (!workflow) {
         return empty_float_vector_;
     }
-    return workflow->getFlattenedOutput();
+    return workflow->get_flattened_output();
 }
 
-const std::vector<int64_t>& ModelManager::getOriginalShape(int instance_id) const {
-    auto workflow = getWorkflow(instance_id);
+const std::vector<int64_t>& ModelManager::get_original_shape(int instance_id) const {
+    auto workflow = get_workflow(instance_id);
     if (!workflow) {
         return empty_int64_vector_;
     }
-    return workflow->getOriginalShape();
+    return workflow->get_original_shape();
 }
 
-int ModelManager::getElementsPerSample(int instance_id) const {
-    auto workflow = getWorkflow(instance_id);
+int ModelManager::get_elements_per_sample(int instance_id) const {
+    auto workflow = get_workflow(instance_id);
     if (!workflow) return 0;
-    return workflow->getElementsPerSample();
+    return workflow->get_elements_per_sample();
 }
 
-bool ModelManager::isInitialized(int instance_id) const {
-    auto workflow = getWorkflow(instance_id);
+bool ModelManager::is_initialized(int instance_id) const {
+    auto workflow = get_workflow(instance_id);
     return workflow != nullptr;
 }
 
-std::vector<int> ModelManager::getActiveInstances() const {
+std::vector<int> ModelManager::get_active_instances() const {
     std::lock_guard<std::mutex> lock(instances_mutex_);
     std::vector<int> ids;
     ids.reserve(instances_.size());
@@ -186,240 +268,16 @@ std::vector<int> ModelManager::getActiveInstances() const {
     return ids;
 }
 
-int ModelManager::getInstanceCount() const {
+int ModelManager::get_instance_count() const {
     std::lock_guard<std::mutex> lock(instances_mutex_);
     return static_cast<int>(instances_.size());
 }
 
-std::shared_ptr<Workflow> ModelManager::getWorkflow(int instance_id) const {
+std::shared_ptr<Workflow> ModelManager::get_workflow(int instance_id) const {
     std::lock_guard<std::mutex> lock(instances_mutex_);
     auto it = instances_.find(instance_id);
     if (it != instances_.end()) {
         return it->second;
     }
     return nullptr;
-}
-
-// =====================================================================
-// Default-instance API
-// =====================================================================
-
-std::shared_ptr<Workflow> ModelManager::getDefaultWorkflow() const {
-    int id;
-    {
-        std::lock_guard<std::mutex> lock(default_mutex_);
-        id = default_id_;
-    }
-    if (id < 0) return nullptr;
-    return getWorkflow(id);
-}
-
-int ModelManager::ensureDefaultInstance() {
-    // Take default_mutex_ to publish default_id_ atomically with any prior
-    // future cleanup; createInstance() takes instances_mutex_ separately
-    // (lock order: default_mutex_ -> instances_mutex_, never the reverse).
-    std::lock_guard<std::mutex> lock(default_mutex_);
-    if (default_id_ < 0 || !getWorkflow(default_id_)) {
-        int id = next_id_.fetch_add(1);
-        {
-            std::lock_guard<std::mutex> ilock(instances_mutex_);
-            instances_[id] = std::make_shared<Workflow>();
-        }
-        default_id_ = id;
-    }
-    return default_id_;
-}
-
-void ModelManager::resetDefault() {
-    int prior;
-    {
-        std::lock_guard<std::mutex> lock(default_mutex_);
-        prior = default_id_;
-        default_id_ = -1;
-        default_async_result_.store(false);
-        // Future is left as-is; if a prior async run is still in flight the
-        // caller is responsible for waitForDefault() before re-init. We drop
-        // it here defensively.
-        if (default_async_future_.valid()) {
-            // detach: it will run to completion against the dying workflow.
-            // Better than blocking destroyInstance() unpredictably.
-            default_async_future_ = std::future<bool>();
-        }
-    }
-    if (prior >= 0) {
-        std::lock_guard<std::mutex> lock(instances_mutex_);
-        instances_.erase(prior);
-    }
-}
-
-bool ModelManager::initDefault(const char* modelPath, bool cpu_use) {
-    int id = ensureDefaultInstance();
-    return initModel(id, modelPath, cpu_use);
-}
-
-bool ModelManager::runDefault(float* data, int num_elements) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    try {
-        wf->run_model(data, num_elements);
-        return true;
-    } catch (const std::exception& e) {
-        Logger::getInstance().error(std::string("Default run error: ") + e.what());
-        return false;
-    }
-}
-bool ModelManager::runDefault(int* data, int num_elements) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    try {
-        wf->run_model(data, num_elements);
-        return true;
-    } catch (const std::exception& e) {
-        Logger::getInstance().error(std::string("Default run error: ") + e.what());
-        return false;
-    }
-}
-bool ModelManager::runDefault(double* data, int num_elements) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    try {
-        wf->run_model(data, num_elements);
-        return true;
-    } catch (const std::exception& e) {
-        Logger::getInstance().error(std::string("Default run error: ") + e.what());
-        return false;
-    }
-}
-
-bool ModelManager::runDefaultBatch(float* data, int batch_size, int elements_per_sample) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    try {
-        wf->run_model_batch(data, batch_size, elements_per_sample);
-        return true;
-    } catch (const std::exception& e) {
-        Logger::getInstance().error(std::string("Default batch run error: ") + e.what());
-        return false;
-    }
-}
-bool ModelManager::runDefaultBatch(int* data, int batch_size, int elements_per_sample) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    try {
-        wf->run_model_batch(data, batch_size, elements_per_sample);
-        return true;
-    } catch (const std::exception& e) {
-        Logger::getInstance().error(std::string("Default batch run error: ") + e.what());
-        return false;
-    }
-}
-bool ModelManager::runDefaultBatch(double* data, int batch_size, int elements_per_sample) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    try {
-        wf->run_model_batch(data, batch_size, elements_per_sample);
-        return true;
-    } catch (const std::exception& e) {
-        Logger::getInstance().error(std::string("Default batch run error: ") + e.what());
-        return false;
-    }
-}
-
-bool ModelManager::runDefaultAsync(float* data, int num_elements) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    std::lock_guard<std::mutex> lock(default_mutex_);
-    default_async_future_ = wf->run_model_async(data, num_elements);
-    return true;
-}
-bool ModelManager::runDefaultAsync(int* data, int num_elements) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    std::lock_guard<std::mutex> lock(default_mutex_);
-    default_async_future_ = wf->run_model_async(data, num_elements);
-    return true;
-}
-bool ModelManager::runDefaultAsync(double* data, int num_elements) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    std::lock_guard<std::mutex> lock(default_mutex_);
-    default_async_future_ = wf->run_model_async(data, num_elements);
-    return true;
-}
-
-bool ModelManager::runDefaultBatchAsync(float* data, int batch_size, int elements_per_sample) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    std::lock_guard<std::mutex> lock(default_mutex_);
-    default_async_future_ = wf->run_model_batch_async(data, batch_size, elements_per_sample);
-    return true;
-}
-
-bool ModelManager::runDefaultAsyncCallback(float* data, int num_elements,
-                                           DefaultAsyncCallback callback) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    wf->run_model_async_callback(data, num_elements, std::move(callback));
-    return true;
-}
-
-bool ModelManager::isDefaultRunning() const {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return false;
-    return wf->isInferenceRunning();
-}
-
-void ModelManager::waitForDefault() {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return;
-    wf->waitForInference();
-    std::lock_guard<std::mutex> lock(default_mutex_);
-    if (default_async_future_.valid()) {
-        default_async_result_.store(default_async_future_.get());
-    }
-}
-
-bool ModelManager::getDefaultAsyncResult() {
-    std::lock_guard<std::mutex> lock(default_mutex_);
-    if (default_async_future_.valid()) {
-        default_async_result_.store(default_async_future_.get());
-    }
-    return default_async_result_.load();
-}
-
-const std::vector<float>& ModelManager::getDefaultFlattenedOutput() const {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return empty_float_vector_;
-    return wf->getFlattenedOutput();
-}
-
-const std::vector<int64_t>& ModelManager::getDefaultOriginalShape() const {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return empty_int64_vector_;
-    return wf->getOriginalShape();
-}
-
-int ModelManager::getDefaultElementsPerSample() const {
-    auto wf = getDefaultWorkflow();
-    if (!wf) return 0;
-    return wf->getElementsPerSample();
-}
-
-bool ModelManager::isDefaultInitialized() const {
-    return getDefaultWorkflow() != nullptr;
-}
-
-bool ModelManager::runDefaultTest(const char* modelPath, bool cpu_use, float* data, int num_elements) {
-    auto wf = getDefaultWorkflow();
-    if (!wf) {
-        Logger::getInstance().error("Default workflow not initialized; call InitModel first.");
-        return false;
-    }
-    try {
-        wf->run_test(modelPath, cpu_use, data, num_elements);
-        return true;
-    } catch (const std::exception& e) {
-        Logger::getInstance().error(std::string("Error running test: ") + e.what());
-        return false;
-    }
 }
