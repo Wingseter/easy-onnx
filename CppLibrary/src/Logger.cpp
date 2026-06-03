@@ -6,8 +6,11 @@
 #include <iostream>
 
 Logger& Logger::getInstance() {
-    static Logger instance;
-    return instance;
+    // Immortal singleton: leaked at process exit on purpose so that ORT
+    // and other static destructors that may want to log late do not race
+    // with our mutex destruction.
+    static Logger* instance = new Logger();
+    return *instance;
 }
 
 Logger::Logger() = default;
@@ -71,6 +74,18 @@ void Logger::clearCallback() {
     callback_ = nullptr;
 }
 
+void Logger::setCCallback(CLogCallback callback, void* user_data) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    c_callback_ = callback;
+    c_callback_user_data_ = user_data;
+}
+
+void Logger::clearCCallback() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    c_callback_ = nullptr;
+    c_callback_user_data_ = nullptr;
+}
+
 void Logger::log(LogLevel level, const std::string& message) {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -105,9 +120,14 @@ void Logger::log(LogLevel level, const std::string& message) {
         file_stream_.flush();
     }
 
-    // Call custom callback
+    // Call custom callback (std::function)
     if (callback_) {
         callback_(level, message);
+    }
+
+    // Call raw C callback bridge
+    if (c_callback_) {
+        c_callback_(static_cast<int>(level), message.c_str(), c_callback_user_data_);
     }
 }
 

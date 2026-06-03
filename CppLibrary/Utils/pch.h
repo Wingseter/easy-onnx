@@ -10,7 +10,7 @@
 #include <thread>
 using namespace std;
 
-#ifdef PLATFORM_WINDOWS
+#ifdef _WIN32
 #pragma comment(lib, "onnxruntime.lib")
 #endif
 
@@ -30,7 +30,12 @@ union DataPointer {
 
 
 #include <onnxruntime_cxx_api.h>
-#include <coreml_provider_factory.h>
+
+#if defined(__APPLE__)
+    #include <coreml_provider_factory.h>
+#elif defined(_WIN32)
+    #include <dml_provider_factory.h>
+#endif
 
 #define DECLARE_SINGLE(type)		\
 private:							\

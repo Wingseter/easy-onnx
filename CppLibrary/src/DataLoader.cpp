@@ -4,6 +4,9 @@
 #include "../Utils/pch.h"
 #include "../include/DataLoader.h"
 #include "../include/Model.h"
+#include "../include/Logger.h"
+
+#include <sstream>
 
 DataLoader::DataLoader(const std::vector<int64_t>& input_dims, ONNXTensorElementDataType input_type)
         : input_dims_(input_dims), input_type_(input_type) {}
@@ -18,33 +21,31 @@ Ort::Value DataLoader::float_load_data(float *data, int num_elements) {
 // Template definition
 template <typename T>
 Ort::Value DataLoader::load_data(T* data, int num_elements) {
-    std::cout << "Starting load_data function" << std::endl;
     Ort::AllocatorWithDefaultOptions allocator;
     Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
 
-    std::cout << "Input type: " << input_type_ << std::endl;
-    std::cout << "Number of elements: " << num_elements << std::endl;
-    std::cout << "Input dimensions: ";
-    for (auto dim : input_dims_) {
-        std::cout << dim << " ";
+    if (Logger::getInstance().getLogLevel() <= LogLevel::DEBUG) {
+        std::ostringstream oss;
+        oss << "load_data: type=" << input_type_ << " n=" << num_elements << " dims=[";
+        for (size_t i = 0; i < input_dims_.size(); ++i) {
+            if (i) oss << ",";
+            oss << input_dims_[i];
+        }
+        oss << "]";
+        Logger::getInstance().debug(oss.str());
     }
-    std::cout << std::endl;
 
     switch (input_type_) {
         case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
-            std::cout << "Creating tensor of type float" << std::endl;
             return Ort::Value::CreateTensor<float>(memory_info, reinterpret_cast<float*>(data), num_elements, input_dims_.data(), input_dims_.size());
         case ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE:
-            std::cout << "Creating tensor of type double" << std::endl;
             return Ort::Value::CreateTensor<double>(memory_info, reinterpret_cast<double*>(data), num_elements, input_dims_.data(), input_dims_.size());
         case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32:
-            std::cout << "Creating tensor of type int32" << std::endl;
             return Ort::Value::CreateTensor<int32_t>(memory_info, reinterpret_cast<int32_t*>(data), num_elements, input_dims_.data(), input_dims_.size());
         case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
-            std::cout << "Creating tensor of type int64" << std::endl;
             return Ort::Value::CreateTensor<int64_t>(memory_info, reinterpret_cast<int64_t*>(data), num_elements, input_dims_.data(), input_dims_.size());
         default:
-            std::cerr << "Unsupported data type" << std::endl;
+            Logger::getInstance().error("Unsupported data type");
             throw std::invalid_argument("Unsupported data type");
     }
 }
