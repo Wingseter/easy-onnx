@@ -70,5 +70,6 @@ UnityApplication/Assets/Plugins/
 
 SampleModel/
 
-.claude
-.antigravitycli
+# 로컬 AI/agent 툴 설정
+/.claude/
+/.antigravitycli/
